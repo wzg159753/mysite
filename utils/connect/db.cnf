@@ -1,10 +1,7 @@
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',   # 数据库引擎
-        'NAME': 'mysite',                       # 数据库名称
-        'USER': 'xiaowang',                      # 数据库登录用户名
-        'PASSWORD': 'qwe123',                # 密码
-        'HOST': '192.168.35.130',                # 数据库主机IP，如保持默认，则为127.0.0.1
-        'PORT': 3306,                           # 数据库端口号，如保持默认，则为3306
-    }
-}
+[client]
+database = mysite
+user = xiaowang
+password = qwe123
+host = 192.168.35.131
+port = 3306
+default-character-set = utf8
