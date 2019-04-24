@@ -26,10 +26,11 @@ class Users(AbstractUser):
     """
     自定义的一个用户模型类， 使用了django 的admin中的一些功能
     """
-    # 覆盖原来的管理器，用自定义的管理器
+    # 覆盖原来的管理器，用自定义的管理器      Users.objects.filter(id=2)
     objects = UserManager()
-    REQUIRED_FIELDS = ['mobile']
+    REQUIRED_FIELDS = ['mobile'] # 指定需要填入的字段
 
+    # 自定义mobile字段
     mobile = models.CharField(verbose_name='电话号码', max_length=11, unique=True, help_text='手机号', error_messages={'unique': '电话号码已存在'})
 
     email_active = models.BooleanField(default=False, verbose_name='验证邮箱状态')

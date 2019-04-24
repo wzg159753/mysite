@@ -46,7 +46,7 @@
           <div>
               <i class="PyWhich py-user"></i>
               <span>
-                  <a href="../users/login.html" class="login">登录</a> / <a href="../users/register.html"
+                  <a href="{% url 'user:login' %}" class="login">登录</a> / <a href="{% url 'user:register' %}"
                                                                           class="reg">注册</a>
               </span>
           </div>
@@ -416,6 +416,7 @@
 <!-- footer end -->
 <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
 <script src="/static/js/commons.js"></script>
+<script src="{% static 'js/base/message.js' %}"></script>
 {% block script %}
     <script src="/static/js/index.js"></script>
 {% endblock %}

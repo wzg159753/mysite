@@ -17,8 +17,8 @@ import sys
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 创建应用之后，把apps目录加入到sys.path中
-sys.path.insert(0, BASE_DIR)
-sys.path.insert(1, os.path.join(BASE_DIR, 'apps'))
+sys.path.insert(0, BASE_DIR) # 在第0个位置插入BASE_DIR
+sys.path.insert(1, os.path.join(BASE_DIR, 'apps')) # 在第一个位置插入路径
 
 
 # Quick-start development settings - unsuitable for production
@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'news1',
     'course',
     'users',
-    'doc'
+    'doc',
+    'veriftions'
 ]
 
 MIDDLEWARE = [
@@ -109,13 +110,45 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://192.168.35.131:6379/0",
+        "LOCATION": "redis://192.168.35.132:6379/0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     },
+# 同样可以指定多个redis
+    # 存放session信息
+    "session": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    # 存放验证信息
+    "verify_codes": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    "sms_codes": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/3",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+
 }
 
+# 将用户的session保存到redis中
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# 指定缓存redis的别名
+SESSION_CACHE_ALIAS = "session"
+
+
+# 指定自定义的User用户表 因为重写了父类 UserManager和Users
 AUTH_USER_MODEL = 'users.Users'
 
 
@@ -191,7 +224,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, "logs/dj_taka.log"),  # 日志文件的位置
+            'filename': os.path.join(BASE_DIR, "logs/mysite.log"),  # 日志文件的位置
             'maxBytes': 300 * 1024 * 1024,
             'backupCount': 10,
             'formatter': 'verbose'

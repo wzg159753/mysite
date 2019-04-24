@@ -34,7 +34,7 @@
           <div class="form-item">
             <input type="text" placeholder="请输入图形验证码" id="input_captcha" name="captcha_graph" class="form-captcha">
             <a href="javascript:void(0);" class="captcha-graph-img">
-              <img src="../images/captcha.png" alt="验证码" title="点击刷新">
+              <img src="" alt="验证码" title="点击刷新">
             </a>
           </div>
           <div class="form-item">
@@ -51,6 +51,6 @@
 {% endblock %}
 
 {% block script %}
-
+    <script src="{% static 'js/users/auth.js' %}"></script>
 {% endblock %}
 

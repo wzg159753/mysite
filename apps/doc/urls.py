@@ -6,5 +6,5 @@ from . import views
 app_name = 'doc'
 
 urlpatterns = [
-    path('', views.doc_index, name='download')
+    path('doc/', views.doc_index, name='download')
 ]
