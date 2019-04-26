@@ -1,4 +1,6 @@
 import logging
+
+import json
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from utils.captcha.captcha import captcha
@@ -7,6 +9,8 @@ from django_redis import get_redis_connection
 
 from . import constants
 from users import models
+from utils.json_func import get_json_data
+from utils.res_code import Code, error_map
 # Create your views here.
 
 # 生成日志器
@@ -14,6 +18,8 @@ logger = logging.getLogger('django')
 
 class ImageCode(View):
     """
+    返回图片验证码  图片src=“/image_codes/<uuid:image_code_id>/” 可以访问到后台
+    自动发送请求，访问后台，获取图片
     /image_codes/<uuid:image_code_id>/
     """
     def get(self, request, image_code_id):
@@ -39,14 +45,50 @@ class ImageCode(View):
         return HttpResponse(content=image, content_type='image/jpg')
 
 
-class ChickUsernameView(View):
+class CheckUsernameView(View):
     """
-    usernames/(?P<username>\w{5,20})/
+    # 验证用户名是否存在
+    /usernames/(?P<username>\w{5,20})/
     """
     def get(self, request, username):
+        # 统计一下数据库中用户名个数验证是否唯一
         count = models.Users.objects.filter(username=username).count()
         data = {
             'count': count,
             'username': username
         }
-        return JsonResponse({'data': data})
+        return get_json_data(data=data)
+
+
+class CheckMobileView(View):
+    """
+    验证手机号
+    /mobiles/(?P<mobile>1[3-9]\d{9})/
+    """
+    def get(self, request, mobile):
+        # 统计mobile个数验证唯一
+        count = models.Users.objects.filter(mobile=mobile).count()
+        data = {
+            'count': count,
+            'mobile': mobile
+        }
+        return get_json_data(data=data)
+
+
+class SysCodeView(View):
+    """
+    验证发送短信验证码
+    /sms_codes/
+    """
+    def post(self, request):
+        """
+        接收ajax发送的请求
+        :param request:
+        :return:
+        """
+        # 拿到ajax发送来的json格式数据
+        json_data = request.body
+        if not json_data:
+            return get_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        dict_data = json.loads(json_data.decode('utf8'))
+        mobile = dict_data['mobile']
