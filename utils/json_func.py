@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from .res_code import Code
 
 
-def get_json_data(error=Code.OK, errmsg='', data=None, **kwargs):
+def to_json_data(error=Code.OK, errmsg='', data=None, **kwargs):
     """
     构造json数据
     :param error: 错误码

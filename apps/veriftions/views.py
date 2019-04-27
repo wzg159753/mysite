@@ -1,4 +1,6 @@
 import logging
+import random
+import string
 
 import json
 from django.shortcuts import render
@@ -9,7 +11,9 @@ from django_redis import get_redis_connection
 
 from . import constants
 from users import models
-from utils.json_func import get_json_data
+from .forms import SmsCodeForm
+from utils.yuntongxun import sms
+from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
 # Create your views here.
 
@@ -57,7 +61,7 @@ class CheckUsernameView(View):
             'count': count,
             'username': username
         }
-        return get_json_data(data=data)
+        return to_json_data(data=data)
 
 
 class CheckMobileView(View):
@@ -72,10 +76,10 @@ class CheckMobileView(View):
             'count': count,
             'mobile': mobile
         }
-        return get_json_data(data=data)
+        return to_json_data(data=data)
 
 
-class SysCodeView(View):
+class SmsCodeView(View):
     """
     验证发送短信验证码
     /sms_codes/
@@ -86,9 +90,66 @@ class SysCodeView(View):
         :param request:
         :return:
         """
-        # 拿到ajax发送来的json格式数据
+        # 拿到ajax发送来的json格式数据 是一个二进制数据bytes
         json_data = request.body
+        # 如果没有就返回错误
         if not json_data:
-            return get_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+            return to_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 将json格式数据转化为字典
         dict_data = json.loads(json_data.decode('utf8'))
-        mobile = dict_data['mobile']
+        # 填充form 用于验证
+        forms = SmsCodeForm(data=dict_data)
+        if forms.is_valid():
+            mobile = forms.cleaned_data.get('mobile', '')
+            # 创建短信验证码内容
+            # 生成六位数短信验证码 string.digits() 生成字符型数字列表  random.choice 随机选择
+            sms_text = ''.join([random.choice(string.digits()) for _ in range(constants.SMS_CODE_NUMS)])
+
+            # 将短信信息保存到redis数据库
+            # 生成短信验证码的key
+            sms_key = f'sms_{mobile}'
+            # 生成短信状态的key 创建一个在60s以内是否有发送短信记录的标记
+            sms_flag_key = f'sms_flag_{mobile}'
+            # 连接redis
+            con = get_redis_connection(alias='verify_codes')
+            # 初始化管道，可以保存多个键值对
+            pi = con.pipeline()
+
+            # 有时候会保存失败 使用管道pipeline有时会发生异常
+            try:
+                # 储存key的时候可以encode().binascii.b2a_hex() 隐藏原始key
+                # 保存短信验证码和状态
+                pi.setex(sms_flag_key, constants.SEND_SMS_CODE_INTERVAL, 1)
+                pi.setex(sms_key, constants.SMS_CODE_REDIS_EXPIRES, sms_text)
+                # 执行保存命令
+                pi.execute()
+
+            except Exception as e:
+                logger.debug(f'redis_保存文件失败_{e}')
+                return to_json_data(errno=Code.UNKOWNERR, errmsg=error_map[Code.UNKOWNERR])
+
+
+            # 发送短信验证码
+            try:
+                result = sms.ccp.send_template_sms(mobile, [sms_text, constants.SMS_CODE_REDIS_EXPIRES], constants.SMS_CODE_TEMP_ID)
+                logger.info(f'发送成功_{mobile}')
+            except Exception as e:
+                logger.error(f'发送验证码错误_error_msg_{e}')
+                return to_json_data(errno=Code.SMSERROR, errmsg=error_map[Code.SMSERROR])
+            else:
+                if result == 0:
+                    logger.info("发送验证码短信[正常][ mobile: %s sms_code: %s]" % (mobile, sms_text))
+                    return to_json_data(errno=Code.OK, errmsg="短信验证码发送成功")
+                else:
+                    logger.warning("发送验证码短信[失败][ mobile: %s ]" % mobile)
+                    return to_json_data(errno=Code.SMSFAIL, errmsg=error_map[Code.SMSFAIL])
+
+        else:
+            error_msg = []
+            for item in forms.errors.get_json_data().values():
+                error_msg.append(item[0].get('message'))
+            error_msg_str = '/'.join(error_msg)
+            return to_json_data(error=Code.PARAMERR, error_msg=error_msg_str)
+
+
+
