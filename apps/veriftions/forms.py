@@ -13,7 +13,7 @@ class SmsCodeForm(forms.Form):
     """
     验证发送短信的三个字段
     """
-    mobile = forms.CharField(max_length=11, min_length=11, validators=mobile_validator, error_messages={
+    mobile = forms.CharField(max_length=11, min_length=11, validators=[mobile_validator], error_messages={
         'max_length': '密码超出最大长度',
         'min_length': '密码小于最小长度',
         'required': '手机号已存在'
@@ -56,4 +56,10 @@ class SmsCodeForm(forms.Form):
 
         if (not real_image_code) or (text != real_image_code):
             raise forms.ValidationError('图片验证失败')
+
+        # 验证60秒 如果60s之内 不能发送
+        sms_flag_key = f'sms_flag_{mobile}'
+        sms_fmt = con.get(sms_flag_key)
+        if sms_fmt:
+            raise forms.ValidationError('操作过于频繁，请60秒后发送')
 

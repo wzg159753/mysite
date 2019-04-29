@@ -175,7 +175,7 @@ $(function () {
     })
       .done(function (res) {
         if (res.data.count !== 0) {
-          message.showError(res.data.mobile + '已注册，请重新输入！')
+          message.showError(res.data.mobile + '已注册，请重新输入！');
           SreturnValue = ""
         } else {
           SreturnValue = "success"

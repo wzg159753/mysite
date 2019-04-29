@@ -20,35 +20,6 @@ from utils.res_code import Code, error_map
 # 生成日志器
 logger = logging.getLogger('django')
 
-class ImageCode(View):
-    """
-    返回图片验证码  图片src=“/image_codes/<uuid:image_code_id>/” 可以访问到后台
-    自动发送请求，访问后台，获取图片
-    /image_codes/<uuid:image_code_id>/
-    """
-    def get(self, request, image_code_id):
-        """
-
-        :param request:
-        :param image_code_id: 获取唯一值用作redis中的key 储存验证码
-        :return:
-        """
-        # 用拆包的方式将验证码和验证图片拆分（‘SUMY’， b‘图片二进制数据’）
-        text, image = captcha.generate_captcha()
-
-        # 连接redis数据库， 指定settings中用哪个redis库
-        con_redis = get_redis_connection(alias='verify_codes')
-        # 生成唯一值img_key
-        img_key = f'img_{image_code_id}'
-        # 调用setex方法， 将key value存入redis， 第一个参数放key 第二个参数为过期时间
-        # 第三个参数为value 过期时间这种常量的值一般找个单独文件存放
-        con_redis.setex(img_key, constants.IMAGE_CODE_REDIS_EXPIRSE, text)
-        # 打印日志到console
-        logger.info(f'image_code: {text}')
-        # 返回数据 如果是二进制数据就用content=b'' ， 指定类型为image， 这样浏览器才能准确解析
-        return HttpResponse(content=image, content_type='image/jpg')
-
-
 class CheckUsernameView(View):
     """
     # 验证用户名是否存在
@@ -79,6 +50,35 @@ class CheckMobileView(View):
         return to_json_data(data=data)
 
 
+class ImageCode(View):
+    """
+    返回图片验证码  图片src=“/image_codes/<uuid:image_code_id>/” 可以访问到后台
+    自动发送请求，访问后台，获取图片
+    /image_codes/<uuid:image_code_id>/
+    """
+    def get(self, request, image_code_id):
+        """
+
+        :param request:
+        :param image_code_id: 获取唯一值用作redis中的key 储存验证码
+        :return:
+        """
+        # 用拆包的方式将验证码和验证图片拆分（‘SUMY’， b‘图片二进制数据’）
+        text, image = captcha.generate_captcha()
+
+        # 连接redis数据库， 指定settings中用哪个redis库
+        con_redis = get_redis_connection(alias='verify_codes')
+        # 生成唯一值img_key
+        img_key = f'img_{image_code_id}'
+        # 调用setex方法， 将key value存入redis， 第一个参数放key 第二个参数为过期时间
+        # 第三个参数为value 过期时间这种常量的值一般找个单独文件存放
+        con_redis.setex(img_key, constants.IMAGE_CODE_REDIS_EXPIRSE, text)
+        # 打印日志到console
+        logger.info(f'image_code: {text}')
+        # 返回数据 如果是二进制数据就用content=b'' ， 指定类型为image， 这样浏览器才能准确解析
+        return HttpResponse(content=image, content_type='image/jpg')
+
+
 class SmsCodeView(View):
     """
     验证发送短信验证码
@@ -103,7 +103,8 @@ class SmsCodeView(View):
             mobile = forms.cleaned_data.get('mobile', '')
             # 创建短信验证码内容
             # 生成六位数短信验证码 string.digits() 生成字符型数字列表  random.choice 随机选择
-            sms_text = ''.join([random.choice(string.digits()) for _ in range(constants.SMS_CODE_NUMS)])
+            sms_text = ''.join([random.choice(string.digits) for _ in range(constants.SMS_CODE_NUMS)])
+            logger.info(sms_text)
 
             # 将短信信息保存到redis数据库
             # 生成短信验证码的key
@@ -124,32 +125,36 @@ class SmsCodeView(View):
                 # 执行保存命令
                 pi.execute()
 
+                # 保存成功默认发送成功 费用问题
+                logger.info("发送验证码短信[正常][ mobile: %s sms_code: %s]" % (mobile, sms_text))
+                return to_json_data(errno=Code.OK, errmsg="短信验证码发送成功")
+
             except Exception as e:
                 logger.debug(f'redis_保存文件失败_{e}')
                 return to_json_data(errno=Code.UNKOWNERR, errmsg=error_map[Code.UNKOWNERR])
 
 
             # 发送短信验证码
-            try:
-                result = sms.ccp.send_template_sms(mobile, [sms_text, constants.SMS_CODE_REDIS_EXPIRES], constants.SMS_CODE_TEMP_ID)
-                logger.info(f'发送成功_{mobile}')
-            except Exception as e:
-                logger.error(f'发送验证码错误_error_msg_{e}')
-                return to_json_data(errno=Code.SMSERROR, errmsg=error_map[Code.SMSERROR])
-            else:
-                if result == 0:
-                    logger.info("发送验证码短信[正常][ mobile: %s sms_code: %s]" % (mobile, sms_text))
-                    return to_json_data(errno=Code.OK, errmsg="短信验证码发送成功")
-                else:
-                    logger.warning("发送验证码短信[失败][ mobile: %s ]" % mobile)
-                    return to_json_data(errno=Code.SMSFAIL, errmsg=error_map[Code.SMSFAIL])
+            # try:
+            #     result = sms.ccp.send_template_sms(mobile, [sms_text, constants.SMS_CODE_REDIS_EXPIRES], constants.SMS_CODE_TEMP_ID)
+            #     logger.info(f'发送成功_{mobile}')
+            # except Exception as e:
+            #     logger.error(f'发送验证码错误_error_msg_{e}')
+            #     return to_json_data(errno=Code.SMSERROR, errmsg=error_map[Code.SMSERROR])
+            # else:
+            #     if result == 0:
+            #         logger.info("发送验证码短信[正常][ mobile: %s sms_code: %s]" % (mobile, sms_text))
+            #         return to_json_data(errno=Code.OK, errmsg="短信验证码发送成功")
+            #     else:
+            #         logger.warning("发送验证码短信[失败][ mobile: %s ]" % mobile)
+            #         return to_json_data(errno=Code.SMSFAIL, errmsg=error_map[Code.SMSFAIL])
 
         else:
             error_msg = []
             for item in forms.errors.get_json_data().values():
                 error_msg.append(item[0].get('message'))
             error_msg_str = '/'.join(error_msg)
-            return to_json_data(error=Code.PARAMERR, error_msg=error_msg_str)
+            return to_json_data(error=Code.PARAMERR, errmsg=error_msg_str)
 
 
 
