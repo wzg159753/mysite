@@ -21,6 +21,6 @@ urlpatterns = [
     path('', include('news1.urls')),
     path('', include('course.urls')),
     path('', include('doc.urls')),
-    path('', include('users.urls')),
+    path('users/', include('users.urls')),
     path('', include('veriftions.urls'))
 ]

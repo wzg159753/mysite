@@ -1,20 +1,30 @@
 import json
 
+from django.contrib.auth import login, logout
 from django.shortcuts import render
 from django.views import View
 
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
+from .forms import RegisterForm
+from .models import Users
 
 # Create your views here.
 
-def user_login(request):
+class LoginView(View):
     """
     用户登录
-    :param request:
-    :return:
+    /users/login/
     """
-    return render(request, 'users/login.html')
+    def get(self, request):
+        return render(request, 'users/login.html')
+
+    def post(self, request):
+        json_data = request.body
+        if not json_data:
+            return to_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        dict_data = json.loads(json_data.decode('utf-8'))
+
 
 class RegisterView(View):
     """
@@ -42,4 +52,19 @@ class RegisterView(View):
         if not json_data:
             return to_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
         dict_data = json.loads(json_data.decode('utf8'))
-        
+        forms = RegisterForm(data=dict_data)
+        if forms.is_valid():
+            username = forms.cleaned_data.get('username')
+            password = forms.cleaned_data.get('password')
+            mobile = forms.cleaned_data.get('mobile')
+            user = Users.objects.create_user(username=username, password=password, mobile=mobile)
+            login(request, user)
+            return to_json_data(errmsg='注册成功')
+
+        else:
+            error_msg = []
+            for item in forms.errors.get_json_data().values():
+                error_msg.append(item[0].get('message'))
+            error_msg_str = '/'.join(error_msg)
+            return to_json_data(error=Code.PARAMERR, errmsg=error_msg_str)
+

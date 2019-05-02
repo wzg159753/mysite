@@ -5,23 +5,31 @@ $(function () {
   let $mobile = $('#mobile');  // 选择id为mobile的网页元素，需要定义一个id为mobile
   let $smsCodeBtn = $('.form-item .sms-captcha');  // 获取短信验证码按钮元素，需要定义一个id为input_smscode
   let $imgCodeText = $('#input_captcha');  // 获取用户输入的图片验证码元素，需要定义一个id为input_captcha
+  let $register = $('.form-contain');  // 获取注册表单元素
 
-  // 1、图像验证码逻辑
+
+  // 1、图片验证码逻辑
+  // 通过uuid生成验证码编号
+  // 拼接验证码地址
+  // 设置验证码图片标签的src
   generateImageCode();  // 生成图像验证码图片
   $img.click(generateImageCode);  // 点击图片验证码生成新的图片验证码图片
 
 
-  // 2、判断用户名是否注册
+  // 2、用户名验证逻辑
   $username.blur(function () {
     fn_check_usrname();
   });
 
-  // 3、判断用户手机号是否注册
+
+  // 3、手机号验证逻辑
+  // 判断用户手机号是否注册
   $mobile.blur(function () {
     fn_check_mobile();
   });
 
-  // 4、发送短信逻辑
+
+  // 4、发送短信验证码逻辑
   $smsCodeBtn.click(function () {
     // 判断手机号是否输入
     if (fn_check_mobile() !== "success") {
@@ -35,22 +43,21 @@ $(function () {
         return
     }
 
-    // 判断是否生成的UUID
     if (!sImageCodeId) {
       message.showError('图片UUID为空');
       return
     }
 
-    // 正常获取参数
+    // 正常
     let SdataParams = {
       "mobile": $mobile.val(),   // 获取用户输入的手机号
-      "text": text,  // 获取用户输入的图片验证码文本
+      "text": text,   // 获取用户输入的图片验证码文本
       "image_code_id": sImageCodeId  // 获取图片UUID
     };
 
     // for test
     // let SdataParams = {
-    //   "mobile": "1886608",   // 获取用户输入的手机号
+    //   "mobile": "1806508",   // 获取用户输入的手机号
     //   "text": "ha3d",  // 获取用户输入的图片验证码文本
     //   "image_code_id": "680a5a66-d9e5-4c3c-b8ea"  // 获取图片UUID
     // };
@@ -61,12 +68,18 @@ $(function () {
       url: "/sms_codes/",
       // 请求方式
       type: "POST",
+      // 向后端发送csrf token
+      // headers: {
+      //           // 根据后端开启的CSRFProtect保护，cookie字段名固定为X-CSRFToken
+      //           "X-CSRFToken": getCookie("csrf_token")
+      // },
+      // data: JSON.stringify(SdataParams),
       data: JSON.stringify(SdataParams),
       // 请求内容的数据类型（前端发给后端的格式）
       contentType: "application/json; charset=utf-8",
       // 响应数据的格式（后端返回给前端的格式）
       dataType: "json",
-      async: false	// 关掉异步功能
+      async: false
     })
       .done(function (res) {
         if (res.errno === "0") {
@@ -80,8 +93,6 @@ $(function () {
               clearInterval(t);
               // 将点击获取验证码的按钮展示的文本恢复成原始文本
               $smsCodeBtn.html("获取验证码");
-              // // 将点击按钮的onclick事件函数恢复回去
-              // $(".get_code").attr("onclick", "sendSMSCode();");
             } else {
               num -= 1;
               // 展示倒计时信息
@@ -93,7 +104,97 @@ $(function () {
         }
       })
       .fail(function(){
-        message.showError(res.errmsg);
+        message.showError('服务器超时，请重试！');
+      });
+
+  });
+
+
+  // 5、注册逻辑
+  $register.submit(function (e) {
+    // 阻止默认提交操作
+    e.preventDefault();
+
+    // 获取用户输入的内容
+    let sUsername = $username.val();  // 获取用户输入的用户名字符串
+    let sPassword = $("input[name=password]").val();
+    let sPasswordRepeat = $("input[name=password_repeat]").val();
+    let sMobile = $mobile.val();  // 获取用户输入的手机号码字符串
+    let sSmsCode = $("input[name=sms_captcha]").val();
+
+    // 判断用户名是否已注册
+    if (fn_check_usrname() !== "success") {
+      return
+    }
+
+    // 判断手机号是否为空，是否已注册
+    if (fn_check_mobile() !== "success") {
+      return
+    }
+
+    // 判断用户输入的密码是否为空
+    if ((!sPassword) || (!sPasswordRepeat)) {
+      message.showError('密码或确认密码不能为空');
+      return
+    }
+
+    // 判断用户输入的密码和确认密码长度是否为6-20位
+    if ((sPassword.length < 6 || sPassword.length > 20) ||
+      (sPasswordRepeat.length < 6 || sPasswordRepeat.length > 20)) {
+      message.showError('密码和确认密码的长度需在6～20位以内');
+      return
+    }
+
+    // 判断用户输入的密码和确认密码是否一致
+    if (sPassword !== sPasswordRepeat) {
+      message.showError('密码和确认密码不一致');
+      return
+    }
+
+
+    // 判断用户输入的短信验证码是否为6位数字
+    if (!(/^\d{6}$/).test(sSmsCode)) {
+      message.showError('短信验证码格式不正确，必须为6位数字！');
+      return
+    }
+
+    // 发起注册请求
+    // 1、创建请求参数
+    let SdataParams = {
+      "username": sUsername,
+      "password": sPassword,
+      "password_repeat": sPasswordRepeat,
+      "mobile": sMobile,
+      "sms_code": sSmsCode
+    };
+
+    // 2、创建ajax请求
+    $.ajax({
+      // 请求地址
+      url: "/users/register/",  // url尾部需要添加/
+      // 请求方式
+      type: "POST",
+      data: JSON.stringify(SdataParams),
+      // 请求内容的数据类型（前端发给后端的格式）
+      contentType: "application/json; charset=utf-8",
+      // 响应数据的格式（后端返回给前端的格式）
+      dataType: "json",
+    })
+      .done(function (res) {
+        if (res.errno === "0") {
+          // 注册成功
+          message.showSuccess('恭喜你，注册成功！');
+          setTimeout(function () {
+            // 注册成功之后重定向到主页
+            window.location.href = document.referrer;
+          }, 1000)
+        } else {
+          // 注册失败，打印错误信息
+          message.showError(res.errmsg);
+        }
+      })
+      .fail(function(){
+        message.showError('服务器超时，请重试！');
       });
 
   });
@@ -127,11 +228,13 @@ $(function () {
   // 判断用户名是否已经注册
   function fn_check_usrname() {
     let sUsername = $username.val();  // 获取用户名字符串
+    let sReturnValue = "";
+
     if (sUsername === "") {
       message.showError('用户名不能为空！');
       return
     }
-    // test()方法 判断字符串中是否匹配到正则表达式内容，返回的是boolean值 ( true / false )
+
     if (!(/^\w{5,20}$/).test(sUsername)) {
       message.showError('请输入5-20个字符的用户名');
       return
@@ -142,22 +245,28 @@ $(function () {
       url: '/usernames/' + sUsername + '/',
       type: 'GET',
       dataType: 'json',
+      async: false
     })
       .done(function (res) {
         if (res.data.count !== 0) {
           message.showError(res.data.username + '已注册，请重新输入！')
+          sReturnValue = ""
         } else {
           message.showInfo(res.data.username + '能正常使用！')
+          sReturnValue = "success"
         }
       })
       .fail(function () {
         message.showError('服务器超时，请重试！');
+        sReturnValue = ""
       });
+    return sReturnValue
   }
 
+  // 判断手机号是否注册
   function fn_check_mobile() {
     let sMobile = $mobile.val();  // 获取用户输入的手机号码字符串
-    let SreturnValue = "";
+    let sReturnValue = "";
     if (sMobile === "") {
       message.showError('手机号不能为空！');
       return
@@ -175,17 +284,18 @@ $(function () {
     })
       .done(function (res) {
         if (res.data.count !== 0) {
-          message.showError(res.data.mobile + '已注册，请重新输入！');
-          SreturnValue = ""
+          message.showError(res.data.mobile + '已注册，请重新输入！')
+          sReturnValue = ""
         } else {
-          SreturnValue = "success"
+          message.showSuccess(res.data.mobile + '能正常使用！');
+          sReturnValue = "success"
         }
       })
       .fail(function () {
         message.showError('服务器超时，请重试！');
-        SreturnValue = ""
+        sReturnValue = ""
       });
-    return SreturnValue
+    return sReturnValue
 
   }
 
@@ -219,4 +329,5 @@ $(function () {
       }
     }
   });
+
 });

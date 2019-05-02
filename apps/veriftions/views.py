@@ -1,13 +1,13 @@
-import logging
+import json
 import random
 import string
+import logging
 
-import json
-from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
-from utils.captcha.captcha import captcha
 from django.views import View
+from django.shortcuts import render
+from utils.captcha.captcha import captcha
 from django_redis import get_redis_connection
+from django.http import HttpResponse, JsonResponse
 
 from . import constants
 from users import models
@@ -126,7 +126,7 @@ class SmsCodeView(View):
                 pi.execute()
 
                 # 保存成功默认发送成功 费用问题
-                logger.info("发送验证码短信[正常][ mobile: %s sms_code: %s]" % (mobile, sms_text))
+                logger.info(f"短信验证码：{sms_text}")
                 return to_json_data(errno=Code.OK, errmsg="短信验证码发送成功")
 
             except Exception as e:
