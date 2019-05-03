@@ -43,6 +43,18 @@
     <!-- nav end -->
     <!-- login start -->
       <div class="login-box">
+          {% if user.is_authenticated %}
+            <div class="author">
+              <i class="PyWhich py-user"></i>
+              <span>{{ user.username }}</span>
+              <ul class="author-menu">
+                    {% if user.is_staff %}
+                  <li><a href="javascript:void(0);">后台管理</a></li>
+                        {% endif %}
+                  <li><a href="javascript:void(0);">退出登录</a></li>
+              </ul>
+          </div>
+          {% else %}
           <div>
               <i class="PyWhich py-user"></i>
               <span>
@@ -50,14 +62,9 @@
                                                                           class="reg">注册</a>
               </span>
           </div>
-          <div class="author hide">
-              <i class="PyWhich py-user"></i>
-              <span>qwertyui</span>
-              <ul class="author-menu">
-                  <li><a href="javascript:void(0);">后台管理</a></li>
-                  <li><a href="javascript:void(0);">退出登录</a></li>
-              </ul>
-          </div>
+          {% endif %}
+
+
       </div>
     <!-- login end -->
   </div>
@@ -415,7 +422,7 @@
 </footer>
 <!-- footer end -->
 <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
-<script src="/static/js/commons.js"></script>
+<script src={% static "js/commons.js" %}></script>
 <script src="{% static 'js/base/message.js' %}"></script>
 {% block script %}
     <script src="/static/js/index.js"></script>

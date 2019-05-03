@@ -6,7 +6,7 @@ from django.views import View
 
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
-from .forms import RegisterForm
+from .forms import RegisterForm, LoginForm
 from .models import Users
 
 # Create your views here.
@@ -24,6 +24,16 @@ class LoginView(View):
         if not json_data:
             return to_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
         dict_data = json.loads(json_data.decode('utf-8'))
+        # 将request传递给form表单
+        forms = LoginForm(data=dict_data, request=request)
+        if forms.is_valid():
+            return to_json_data(errmsg='登陆成功')
+        else:
+            err_msg_list = []
+            for item in forms.errors.get_json_data().values():
+                err_msg_list.append(item[0].get('message'))
+            err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
+            return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
 
 
 class RegisterView(View):
