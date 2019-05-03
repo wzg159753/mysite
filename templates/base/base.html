@@ -51,7 +51,7 @@
                     {% if user.is_staff %}
                   <li><a href="javascript:void(0);">后台管理</a></li>
                         {% endif %}
-                  <li><a href="javascript:void(0);">退出登录</a></li>
+                  <li><a href="{% url 'user:logout' %}">退出登录</a></li>
               </ul>
           </div>
           {% else %}

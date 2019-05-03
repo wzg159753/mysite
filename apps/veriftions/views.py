@@ -94,7 +94,7 @@ class SmsCodeView(View):
         json_data = request.body
         # 如果没有就返回错误
         if not json_data:
-            return to_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
         # 将json格式数据转化为字典
         dict_data = json.loads(json_data.decode('utf8'))
         # 填充form 用于验证
@@ -154,7 +154,7 @@ class SmsCodeView(View):
             for item in forms.errors.get_json_data().values():
                 error_msg.append(item[0].get('message'))
             error_msg_str = '/'.join(error_msg)
-            return to_json_data(error=Code.PARAMERR, errmsg=error_msg_str)
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_msg_str)
 
 
 

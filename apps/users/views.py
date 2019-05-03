@@ -1,8 +1,8 @@
 import json
 
-from django.contrib.auth import login, logout
-from django.shortcuts import render
 from django.views import View
+from django.shortcuts import render, redirect, reverse
+from django.contrib.auth import login, logout
 
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
@@ -22,10 +22,11 @@ class LoginView(View):
     def post(self, request):
         json_data = request.body
         if not json_data:
-            return to_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
         dict_data = json.loads(json_data.decode('utf-8'))
         # 将request传递给form表单
         forms = LoginForm(data=dict_data, request=request)
+        # form验证的时候已经用login（）方法登录了
         if forms.is_valid():
             return to_json_data(errmsg='登陆成功')
         else:
@@ -34,6 +35,16 @@ class LoginView(View):
                 err_msg_list.append(item[0].get('message'))
             err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
             return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
+
+
+class LogoutView(View):
+    """
+    退出逻辑
+    /users/logout/
+    """
+    def get(self, request):
+        logout(request)
+        return redirect(reverse('user:login'))
 
 
 class RegisterView(View):
@@ -60,7 +71,7 @@ class RegisterView(View):
         """
         json_data = request.body
         if not json_data:
-            return to_json_data(error=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
         dict_data = json.loads(json_data.decode('utf8'))
         forms = RegisterForm(data=dict_data)
         if forms.is_valid():
@@ -76,5 +87,5 @@ class RegisterView(View):
             for item in forms.errors.get_json_data().values():
                 error_msg.append(item[0].get('message'))
             error_msg_str = '/'.join(error_msg)
-            return to_json_data(error=Code.PARAMERR, errmsg=error_msg_str)
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_msg_str)
 
