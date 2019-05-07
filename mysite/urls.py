@@ -15,6 +15,8 @@ Including another URLconf
 """
 # from django.contrib import admin
 from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
@@ -22,5 +24,6 @@ urlpatterns = [
     path('', include('course.urls')),
     path('', include('doc.urls')),
     path('users/', include('users.urls')),
-    path('', include('veriftions.urls'))
-]
+    path('', include('veriftions.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# 固定写法 因为media是自定义的所以在前端找不到当前路径，配置了后就会找到

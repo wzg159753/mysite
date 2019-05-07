@@ -109,23 +109,11 @@
                   <ul class="clearfix">
                       <li class="active"><a href="javascript:void(0)">最新资讯</a></li>
 
-                      <li><a href="javascript:void(0)" data-id="1">python框架</a>
-                      </li>
+                      {% for tag in tags %}
 
-                      <li><a href="javascript:void(0)" data-id="2">Python基础</a>
+                          <li><a href="javascript:void(0)" data-id="{{ tag.id }}">{{ tag.name }}</a>
                       </li>
-
-                      <li><a href="javascript:void(0)" data-id="3">Python高级</a>
-                      </li>
-
-                      <li><a href="javascript:void(0)" data-id="4">Python函数</a>
-                      </li>
-
-                      <li><a href="javascript:void(0)" data-id="5">PythonGUI</a>
-                      </li>
-
-                      <li><a href="javascript:void(0)" data-id="6">Linux教程</a>
-                      </li>
+                      {% endfor %}
 
                   </ul>
               </nav>
@@ -328,7 +316,7 @@
 {% endblock %}
 
 {% block script %}
-<script src="{% static "js/index.js" %}"></script>
+<script src="{% static "js/news/index.js" %}"></script>
 
 {% endblock %}
 

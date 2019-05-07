@@ -36,7 +36,7 @@ class Users(AbstractUser):
     email_active = models.BooleanField(default=False, verbose_name='验证邮箱状态')
 
     class Meta:
-        db_table = 'db_users' # 自定义表名  默认表名为app名 + 类名小写
+        db_table = 'tb_users' # 自定义表名  默认表名为app名 + 类名小写
         verbose_name = '用户'
         verbose_name_plural = verbose_name
 

@@ -37,7 +37,7 @@
         <li><a href="{% url "news:index" %}">首页</a></li>
         <li><a href="{% url "course:course_index" %}">在线课堂</a></li>
         <li><a href="{% url "doc:download" %}">下载文档</a></li>
-        <li><a href="{% url "news:search" %}">搜索</a></li>
+        <li><a href="">搜索</a></li>
       </ul>
     </nav>
     <!-- nav end -->
@@ -86,7 +86,7 @@
                 <!--淡入淡出banner-->
 
 
-                <li><a href="javascript:void(0);"><img src="../images/ui.png" alt="test"></a></li>
+                <li><a href="javascript:void(0);"><img src="{% static 'images/ui.png' %}" alt="test"></a></li>
 
 
                 <li><a href="javascript:void(0);"><img src="../images/youxi.png" alt="test"></a></li>
@@ -424,6 +424,7 @@
 <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
 <script src={% static "js/commons.js" %}></script>
 <script src="{% static 'js/base/message.js' %}"></script>
+<script src="/static/js/index.js"></script>
 {% block script %}
     <script src="/static/js/index.js"></script>
 {% endblock %}
