@@ -32,8 +32,9 @@
   padding: 0 20px;
   border-radius: 5px;
 }
-.main-contain .news-content {
+.news-contain .news-content {
   margin-top: 25px;
+  line-height: 30px;
 }
 .main-contain .news-content  img {
   width: 100% !important;

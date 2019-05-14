@@ -7,6 +7,9 @@ from django.contrib.auth import login, logout
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
 from .forms import RegisterForm, LoginForm
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
+
 from .models import Users
 
 # Create your views here.
@@ -16,6 +19,7 @@ class LoginView(View):
     用户登录
     /users/login/
     """
+    # @method_decorator(ensure_csrf_cookie)
     def get(self, request):
         return render(request, 'users/login.html')
 

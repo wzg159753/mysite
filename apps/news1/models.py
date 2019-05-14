@@ -78,8 +78,15 @@ class HotNews(ModelBase):
     news: 一对一关联哪个文章
     priority: 优先级
     """
+    PRI_CHOICES = [
+        (1, '第一级'),
+        (2, '第二级'),
+        (3, '第三级')
+    ]
+
     news = models.OneToOneField('News', on_delete=models.CASCADE)
-    priority = models.IntegerField(verbose_name="优先级", help_text="优先级")
+    # 限制范围choices，中能从绑定的列表中选择
+    priority = models.IntegerField(choices=PRI_CHOICES, verbose_name="优先级", help_text="优先级", default=3)
 
     class Meta:
         ordering = ['-update_time', '-id']
@@ -98,8 +105,17 @@ class Banner(ModelBase):
     priority: 优先级
     news: 哪个文章， 一对一关联对应的文章
     """
+    PRI_CHOICES = [
+        (1, '第一级'),
+        (2, '第二级'),
+        (3, '第三级'),
+        (4, '第四级'),
+        (5, '第五级'),
+        (6, '第六级')
+    ]
+
     image_url = models.URLField(verbose_name="轮播图url", help_text="轮播图url")
-    priority = models.IntegerField(verbose_name="优先级", help_text="优先级")
+    priority = models.IntegerField(choices=PRI_CHOICES, verbose_name="优先级", help_text="优先级", default=6)
     news = models.OneToOneField('News', on_delete=models.CASCADE)
 
     class Meta:

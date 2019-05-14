@@ -56,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'utils.getCsrfmiddleware.GetMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -239,6 +240,6 @@ LOGGING = {
     }
 }
 
-
+# 配置media路径 ，因为是自定义的一些静态文件，所以要自己配置
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

@@ -25,16 +25,16 @@
       <div class="w1200 clearfix">
         <!-- news-contain start  -->
         <div class="news-contain">
-          <h1 class="news-title">我就说我</h1>
+          <h1 class="news-title">{{ detail.title }}</h1>
           <div class="news-info">
             <div class="news-info-left">
-              <span class="news-author">作者</span>
-              <span class="news-pub-time">1小时前</span>
-              <span class="news-type">类型</span>
+              <span class="news-author">{{ detail.author.username }}</span>
+              <span class="news-pub-time">{{ detail.update_time }}</span>
+              <span class="news-type">{{ detail.tag.name }}</span>
             </div>
           </div>
           <article class="news-content">
-            文章内容
+            {{ detail.content|safe }}
           </article>
           <div class="comment-contain">
             <div class="comment-pub clearfix">
