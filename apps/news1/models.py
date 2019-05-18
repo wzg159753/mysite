@@ -62,6 +62,27 @@ class Comments(ModelBase):
     author = models.ForeignKey('users.Users', on_delete=models.SET_NULL, null=True)
     news = models.ForeignKey('News', on_delete=models.CASCADE)
 
+    # 父评论，如果为False则没有父评论，就是第一次评论
+    # 如果为True ，则有父评论，这个实例就是子评论
+    # 评论的回复也是一个评论，用parent来区分他的父评论即可
+    parent = models.ForeignKey('self', null=True, on_delete=models.CASCADE, blank=True)
+
+    def to_comment_dict(self) -> dict:
+        """
+        :return:
+        """
+        # 模型返回数据，常用方法之一
+        return {
+            'news_id': self.news.id,
+            'content_id': self.id,
+            'content': self.content,
+            'author': self.author.username,
+            'update_time': self.update_time.strftime('%Y年%m月%d日 %H:%M'),
+            # 这个意思是，如果parent存在，就有父标题，则调用父标题的的to_comment_dict
+            # 父标题的to_comment_dict返回父标题的字段，父标题没有parent，则parent=None
+            'parent': self.parent.to_comment_dict() if self.parent else None,
+        }
+
     class Meta:
         ordering = ['-update_time', '-id']
         db_table = "tb_comments"  # 指明数据库表名

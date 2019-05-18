@@ -20,8 +20,10 @@ class IndexView(View):
     """
 
     def get(self, request):
+        # 查询标签信息，渲染到前端
         tags = models.Tag.objects.only('name', 'id').filter(is_delete=False)
-        hot_news = models.HotNews.objects.select_related('news').only('news__title', 'news__image_url', 'news_id').filter(is_delete=False).order_by('priority', '-news__clicks')[0:3]
+        # 获取热门新闻的数据，渲染到前端，一个queryset，在前端遍历渲染
+        hot_news = models.HotNews.objects.select_related('news').only('news__title', 'news__image_url', 'news_id').filter(is_delete=False).order_by('priority', '-news__clicks')[0:contants.SHOW_HOTNEWS_COUNT]
         # context = {
         #     'tags': tags
         # }
@@ -97,12 +99,15 @@ class NewsListView(View):
 
 class NewsBannerView(View):
     """
-    轮播图视图
-
+    轮播图视图,不需要额外参数,与js交互,返回json数据给ajax
+    /news/banners/
     """
     def get(self, request):
+        # 查轮播图表，关联新闻表，取出新闻的id和title，注意轮播图有几条
+        # 并且用优先级进行排序，取出前六条
         banner_list = models.Banner.objects.select_related('news').only('image_url', 'news_id', 'news__title').filter(is_delete=False).order_by('priority')[0:contants.SHOW_BANNER_COUNT]
 
+        # 序列化数据
         news_info_list = []
         for new in banner_list:
             news_info_list.append({
@@ -111,6 +116,7 @@ class NewsBannerView(View):
                 "news_title": new.news.title
             })
 
+        # 将构造好的数据发送给ajax
         data = {
             'banners': news_info_list
         }
@@ -120,7 +126,7 @@ class NewsBannerView(View):
 
 class NewsDetailView(View):
     """
-    新闻详情视图
+    新闻详情视图，需要接收一个参数，新闻的唯一id
     /news/<int:news_id>/
     """
     def get(self, request, news_id):
@@ -130,8 +136,19 @@ class NewsDetailView(View):
         :param news_id:
         :return:
         """
+        # 查询News新闻表，关联author和tag，因为需要这两个表中的字段
+        # 注意查出来的是queryset用first()取出对象
         detail = models.News.objects.select_related('author', 'tag').only('title', 'content', 'update_time', 'author__username', 'tag__name').filter(id=news_id, is_delete=False).first()
+        # 如果查到就返回
         if detail:
+            # 查询出queryset对象集合
+            comments = models.Comments.objects.select_related('author', 'parent').only('author__username', 'parent__author__username', 'update_time', 'content', 'parent__content', 'parent__update_time').filter(is_delete=False, news_id=news_id)
+            comment_info_list = []
+            # 对queryset遍历
+            for comm in comments:
+                # 取出每一个对象，调用模型中的返回字段函数，序列化一个列表传给前端。（一种方法）
+                comment_info_list.append(comm.to_comment_dict())
             return render(request, 'news/news_detail.html', locals())
+        # 查不到就抛出404
         else:
             raise Http404('新闻找不到了')
