@@ -1,14 +1,18 @@
+import json
 import logging
-from datetime import datetime
 
-from django.http import Http404
 from django.views import View
+from django.http import Http404
 from django.shortcuts import render
-from django.core.paginator import Paginator, EmptyPage
+from haystack.views import SearchView as _SearchView
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+from mysite import settings
 from . import models
 from . import contants
+from .models import HotNews
 from utils.json_func import to_json_data
+from utils.res_code import Code, error_map
 # Create your views here.
 
 logger = logging.getLogger('django')
@@ -152,3 +156,100 @@ class NewsDetailView(View):
         # 查不到就抛出404
         else:
             raise Http404('新闻找不到了')
+
+
+class NewsCommentView(View):
+    """
+    新闻评论视图
+    /news/<int:news_id>/comments/
+    """
+    # 需要验证新闻存不存在，评论是否为空，是否有父评论，
+    def post(self, request, news_id):
+
+        # 验证用户是否登录
+        if not request.user.is_authenticated:
+            return to_json_data(errno=Code.SESSIONERR, errmsg=error_map[Code.SESSIONERR])
+
+        # 验证当前新闻存不存在
+        if not models.News.objects.only('id').filter(is_delete=False, id=news_id).exists():
+            return to_json_data(errno=Code.NODATA, errmsg='新闻不存在')
+
+        # 拿到ajax发送来的json格式数据 是一个二进制数据bytes
+        json_data = request.body
+        # 如果没有就返回错误
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 将json格式数据转化为字典
+        dict_data = json.loads(json_data.decode('utf8'))
+
+        # 拿到评论内容
+        content = dict_data.get('content')
+        if not content:
+            return to_json_data(errno=Code.NODATA, errmsg='内容不能为空')
+
+        # 拿到父评论  可以没有
+        parent_id = dict_data.get('parent_id')
+        # 捕捉异常 如果不是字符型数字，则强转会出错
+        try:
+            if parent_id:
+                parent_id = int(parent_id)
+                # 查看有没有这条父评论
+                # 查询评论，条件是news_id是当前新闻，父评论id等于当前评论id
+                if not models.Comments.objects.only('id').filter(is_delete=False, news_id=news_id, id=parent_id).exists():
+                    return to_json_data(errno=Code.UNKOWNERR, errmsg=error_map[Code.UNKOWNERR])
+
+        except Exception as e:
+            logger.error(f'转义错误{e}')
+            return to_json_data(errno=Code.PARAMERR, errmsg="未知异常")
+
+        # 实例化一条空数据，赋值填充
+        comment = models.Comments()
+        comment.news_id = news_id
+        comment.content = content
+        comment.author = request.user
+        comment.parent_id = parent_id if parent_id else None
+        comment.save()
+        # 保存成功后发送给前端，因为要渲染到前端，调用Comments类的自定义方法，获取数据
+        return to_json_data(data=comment.to_comment_dict())
+
+
+class NewsSearchView(_SearchView):
+    """
+    文章搜索视图
+    /news/search/
+    """
+    template = 'news/search.html'
+    
+    def create_response(self):
+        """
+        重写SearchView的create_response方法，如果没传参 就用自己写的逻辑
+        如果传参了 就用create_response的逻辑
+        :return: 
+        """
+        # 获取前端传来的查询内容
+        kw = self.request.GET.get('q')
+        if not kw:
+            show_all = True
+            # 如果没有就返回热门新闻
+            hot_news = HotNews.objects.select_related('news').only('news__title', 'news__image_url', 'news__content',  'news__digest', 'news__author').filter(is_delete=False).order_by('priority', '-news__clicks')
+            # 对查询到的queryset进行分页
+            pagate = Paginator(hot_news, settings.HAYSTACK_SEARCH_RESULTS_PER_PAGE)
+            try:
+                # 获取当前页  如果没传参就返回第一页
+                pg = self.request.GET.get('page', 1)
+                # 一定要异常捕获一下 因为有可能传来的不是数字str
+                page = pagate.page(int(pg))
+            except PageNotAnInteger:
+                # 如果不是字符型数字
+                # 就返回第一页
+                page = pagate.page(1)
+            except EmptyPage:
+                # 如果超出索引  就返回最后一页
+                page = pagate.page(pagate.num_pages)
+            return render(self.request, self.template, locals())
+        
+        else:
+            show_all = False
+            # 如果有参数  就复用
+            qs = super(NewsSearchView, self).create_response()
+            return qs
