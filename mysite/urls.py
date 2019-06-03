@@ -25,5 +25,6 @@ urlpatterns = [
     path('', include('doc.urls')),
     path('users/', include('users.urls')),
     path('', include('veriftions.urls')),
+    path('', include('admin.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 # 固定写法 因为media是自定义的所以在前端找不到当前路径，配置了后就会找到

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'course',
     'users',
     'doc',
+    'admin',
     'veriftions',
     'haystack'
 ]
