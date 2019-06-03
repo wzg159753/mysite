@@ -24,6 +24,7 @@ class LoginView(View):
         return render(request, 'users/login.html')
 
     def post(self, request):
+        # 获取前端传来的数据
         json_data = request.body
         if not json_data:
             return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
@@ -74,15 +75,21 @@ class RegisterView(View):
         :return:
         """
         json_data = request.body
+        # 获取ajax数据
         if not json_data:
             return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
         dict_data = json.loads(json_data.decode('utf8'))
+        # 内置表单验证
         forms = RegisterForm(data=dict_data)
+        # 验证成功
         if forms.is_valid():
+            # 拿到用户提交数据
             username = forms.cleaned_data.get('username')
             password = forms.cleaned_data.get('password')
             mobile = forms.cleaned_data.get('mobile')
+            # 存入数据库
             user = Users.objects.create_user(username=username, password=password, mobile=mobile)
+            # 使用django内置登录，会自动设置session 信息为用户名
             login(request, user)
             return to_json_data(errmsg='注册成功')
 

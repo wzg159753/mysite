@@ -65,6 +65,7 @@ class NewsListView(View):
         # 外键字段 tag__name, author__username # 有关联的字段才能取，用 表名小写__字段名
         # select_related优化方法 提前将模型字段关联
         news_queryset = models.News.objects.select_related('tag', 'author').only('title', 'digest', 'image_url', 'update_time', 'tag__name', 'author__username')
+        # 如果没传tag_id则代表是最新资讯，代表所有的资讯
         news = news_queryset.filter(tag_id=tag_id, is_delete=False) or news_queryset.filter(is_delete=False)
         # 4、分页
         # 用django内置分页方法，第一个参数传对象集合，第二个参数传一页多少条数据
@@ -166,7 +167,7 @@ class NewsCommentView(View):
     # 需要验证新闻存不存在，评论是否为空，是否有父评论，
     def post(self, request, news_id):
 
-        # 验证用户是否登录
+        # 验证用户是否登录，django内置方法
         if not request.user.is_authenticated:
             return to_json_data(errno=Code.SESSIONERR, errmsg=error_map[Code.SESSIONERR])
 

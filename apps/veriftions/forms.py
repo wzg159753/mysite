@@ -52,7 +52,7 @@ class SmsCodeForm(forms.Form):
         # 用一个三目运算解决验证问题
         real_image_code = real_image_code_origin.decode('utf8') if real_image_code_origin else None
         # 将图片验证码取出来后存放在内存中 所以redis中就不需要了，释放内存，删除验证码
-        con.delete(img_key)
+        # con.delete(img_key)
 
         if (not real_image_code) or (text != real_image_code):
             raise forms.ValidationError('图片验证失败')

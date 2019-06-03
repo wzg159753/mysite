@@ -30,24 +30,6 @@
                 <ul class="tab">
                     <!-- 按钮数量必须和图片一致 -->
 
-{##}
-{#                    <li></li>#}
-{##}
-{##}
-{#                    <li></li>#}
-{##}
-{##}
-{#                    <li></li>#}
-{##}
-{##}
-{#                    <li></li>#}
-{##}
-{##}
-{#                    <li></li>#}
-{##}
-{##}
-{#                    <li></li>#}
-
 
                 </ul>
             </div>
@@ -57,6 +39,9 @@
           <div class="content">
             <!-- recommend-news start -->
               <ul class="recommend-news">
+
+
+{#      热门新闻        #}
                   {% for new in hot_news %}
 
                       <li>
@@ -76,6 +61,8 @@
                   <ul class="clearfix">
                       <li class="active"><a href="javascript:void(0)" data-id="0">最新资讯</a></li>
 
+
+{#        标签分类          #}
                       {% for tag in tags %}
 
                           <li><a href="javascript:void(0)" data-id="{{ tag.id }}">{{ tag.name }}</a>

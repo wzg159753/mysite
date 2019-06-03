@@ -56,6 +56,7 @@ class Comments(ModelBase):
     content: 评论内容
     author: 谁评论的 外键关联Users表
     news: 哪个文章被评论 外键关联文章表
+    parent: 是否有父评论
     """
     content = models.TextField(verbose_name="内容", help_text="内容")
 
@@ -78,8 +79,8 @@ class Comments(ModelBase):
             'content': self.content,
             'author': self.author.username,
             'update_time': self.update_time.strftime('%Y年%m月%d日 %H:%M'),
-            # 这个意思是，如果parent存在，就有父标题，则调用父标题的的to_comment_dict
-            # 父标题的to_comment_dict返回父标题的字段，父标题没有parent，则parent=None
+            # 这个意思是，如果parent存在，就有父评论，则调用父评论的的to_comment_dict
+            # 父评论的to_comment_dict返回父标题的字段，父标题没有parent，则parent=None
             'parent': self.parent.to_comment_dict() if self.parent else None,
         }
 

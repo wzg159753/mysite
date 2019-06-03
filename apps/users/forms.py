@@ -14,6 +14,7 @@ from utils.res_code import Code, error_map
 class RegisterForm(forms.Form):
     """
     用户注册form
+    字段要和前端name字段一致
     """
     username = forms.CharField(label='用户名', max_length=20, min_length=5, error_messages={"min_length": "用户名长度要大于5", "max_length": "用户名长度要小于20",
                                                "required": "用户名不能为空"})
@@ -90,8 +91,10 @@ class LoginForm(forms.Form):
     """
     登录表单验证
     """
+    # 因为可以传用户名和手机号进行登录，所以不需要设置其他属性
     user_account = forms.CharField()
     password = forms.CharField(label='密码', max_length=20, min_length=6, required=True, error_messages={"min_length": "密码长度要大于6", "max_length": "密码长度要小于20","required": "密码不能为空"})
+    # 是否记住登录
     remember_me = forms.BooleanField(required=False)
     
     def __init__(self, *args, **kwargs):
@@ -131,7 +134,8 @@ class LoginForm(forms.Form):
                 else:
                     # 如果没点击则设置过期时间为关闭浏览器
                     self.request.session.set_expiry(0)
-                # 登录 自动设置一条session 为user
+
+                # 登录 django内置登录 自动设置一条session 为user
                 login(self.request, user)
             else:
                 raise forms.ValidationError('密码错误')
