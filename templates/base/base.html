@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="/static/css/base/common.css">
   <link rel="stylesheet" href="/static/css/base/side.css">
   <link rel="stylesheet" href="http://at.alicdn.com/t/font_684044_un7umbuwwfp.css">
+  <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.ico' %}"/>
     {% block link %}
 
         {#    放link css路径    #}
@@ -49,7 +50,7 @@
               <span>{{ user.username }}</span>
               <ul class="author-menu">
                     {% if user.is_staff %}
-                  <li><a href="javascript:void(0);">后台管理</a></li>
+                  <li><a href="{% url 'admin:index' %}">后台管理</a></li>
                         {% endif %}
                   <li><a href="{% url 'user:logout' %}">退出登录</a></li>
               </ul>

@@ -247,6 +247,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
+# elasticsearch配置
 ELASTICSEARCH_DSL = {
     'default': {
         'hosts': '127.0.0.1:8002'
