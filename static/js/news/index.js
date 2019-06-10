@@ -145,7 +145,7 @@ $(function () {
                     <img src="${one_news.image_url}" alt="${one_news.title}" title="${one_news.title}">
                  </a>
                  <div class="news-content">
-                    <h4 class="news-title"><a href="/news/${one_news.news_id}/">${one_news.title}</a></h4>
+                    <h4 class="news-title"><a href="/news/${one_news.news_id}/" target="_blank">${one_news.title}</a></h4>
                     <p class="news-details">${one_news.digest}</p>
                     <div class="news-other">
                       <span class="news-type">${one_news.tag_name}</span>

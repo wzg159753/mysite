@@ -1,3 +1,5 @@
+import pytz
+
 from django.db import models
 
 from utils.models import ModelBase
@@ -72,13 +74,16 @@ class Comments(ModelBase):
         """
         :return:
         """
+        shanghai_tz = pytz.timezone('Asia/Shanghai')
+        update_time_local = shanghai_tz.normalize(self.update_time)
         # 模型返回数据，常用方法之一
         return {
             'news_id': self.news.id,
             'content_id': self.id,
             'content': self.content,
             'author': self.author.username,
-            'update_time': self.update_time.strftime('%Y年%m月%d日 %H:%M'),
+            # 'update_time': self.update_time.strftime('%Y年%m月%d日 %H:%M'),
+            'update_time': update_time_local.strftime('%Y年%m月%d日 %H:%M'),
             # 这个意思是，如果parent存在，就有父评论，则调用父评论的的to_comment_dict
             # 父评论的to_comment_dict返回父标题的字段，父标题没有parent，则parent=None
             'parent': self.parent.to_comment_dict() if self.parent else None,

@@ -56,6 +56,7 @@ $(function () {
     let _this = this;
     let sTagId = $(this).parents('tr').data('id');
     let sTagName = $(this).parents('tr').data('name');
+    // let sTagName = $(this).parents('tr').find('td:nth-child(1)');
     fAlert.alertOneInput({
       title: "编辑文章标签",
       text: "你正在编辑 " + sTagName + " 标签",
@@ -86,8 +87,12 @@ $(function () {
             if (res.errno === "0") {
               // 更新标签成功
               $(_this).parents('tr').find('td:nth-child(1)').text(inputVal);
+              // 这里需要将页面的data_name 也修改一下 才能每次修改正确
               swal.close();
               message.showSuccess("标签修改成功");
+              setTimeout(function () {
+                window.location.reload();
+              }, 1000)
             } else {
               swal.showInputError(res.errmsg);
             }
