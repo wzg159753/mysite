@@ -16,6 +16,7 @@ import sys
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# （重要）
 # 创建应用之后，把apps目录加入到sys.path中
 sys.path.insert(0, BASE_DIR) # 在第0个位置插入BASE_DIR
 sys.path.insert(1, os.path.join(BASE_DIR, 'apps')) # 在第一个位置插入路径
@@ -35,6 +36,7 @@ ALLOWED_HOSTS = ['*']
 
 # Application definition
 
+# （新增app一定要注册，养成良好习惯）
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -58,7 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'utils.getCsrfmiddleware.GetMiddleware',
+    'utils.getCsrfmiddleware.GetMiddleware', # （使用自定义的csrf中间件）
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -98,6 +100,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #     }
 # }
 
+# （配置mysql引擎，使用数据库配置文件配置）
 DATABASES = {
     # 方法二： # 配置数据库连接文件
     'default': {
@@ -109,6 +112,7 @@ DATABASES = {
     }
 }
 
+# (配置redis引擎，配置多个redis数据库，用于存放不同的缓存以及session)
 # 在settings.py文件中指定redis配置
 CACHES = {
     "default": {
@@ -135,6 +139,7 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     },
+    # 存放短信验证码
     "sms_codes": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://127.0.0.1:6379/3",
@@ -151,6 +156,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "session"
 
 
+# （重要：因为重写了admin中的User类，就需要告诉django修改了这个类）
 # 指定自定义的User用户表 因为重写了父类 UserManager和Users
 AUTH_USER_MODEL = 'users.Users'
 
@@ -191,6 +197,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
+# （配置静态文件）
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
@@ -199,6 +206,7 @@ STATICFILES_DIRS = [
 
 # 在setting.py文件中加入如下配置：
 # 配置日志器，记录网站的日志信息
+# （配置日志文件）
 LOGGING = {
     # 版本
     'version': 1,
@@ -242,12 +250,13 @@ LOGGING = {
     }
 }
 
+# （重要：配置media路径，自定义静态文件也需要被找到）
 # 配置media路径 ，因为是自定义的一些静态文件，所以要自己配置
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
-# elasticsearch配置
+# （elasticsearch配置）
 ELASTICSEARCH_DSL = {
     'default': {
         'hosts': '127.0.0.1:8002'
@@ -268,5 +277,5 @@ HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5
 # 当数据库改变时，会自动更新索引
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
-# 路由
+# 根路由
 SITE_DOMAIN_PORT = "http://127.0.0.1:8000/"
