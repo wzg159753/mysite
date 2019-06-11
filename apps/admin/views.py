@@ -1,4 +1,6 @@
 import json
+import logging
+
 from django.shortcuts import render
 from django.views import View
 from django.db.models import Count
@@ -7,7 +9,9 @@ from news1 import models
 # Create your views here.
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
+from . import contants
 
+logger = logging.getLogger('django')
 
 
 class IndexView(View):
@@ -61,8 +65,6 @@ class TagManageView(View):
                 return to_json_data(errno=Code.DATAEXIST, errmsg='标签已存在')
         else:
             return to_json_data(errno=Code.PARAMERR, errmsg='标签不能为空')
-
-
 
 
 class TagEditView(View):
@@ -127,4 +129,68 @@ class TagEditView(View):
 
         else:
             return to_json_data(errno=Code.PARAMERR, errmsg='标签不存在')
+
+
+class HotNewsManageView(View):
+    """
+    热门新闻
+    /hotnews/
+    """
+    def get(self, request):
+        hot_news = models.HotNews.objects.select_related('news__tag').only('news__title', 'news_id', 'news__tag__name', 'priority').filter(is_delete=False).order_by('priority', '-update_time')[:contants.SHOW_HOTNEWS_COUNT]
+        return render(request, 'admin/news/news_hot.html', locals())
+
+
+class HotNewsEditView(View):
+    """
+    热门文章修改删除
+    /hotnews/<int:hotnews_id>/
+    """
+    def delete(self, request, hotnews_id):
+        """
+        删除热门新闻
+        :param request:
+        :return:
+        """
+        hotnews = models.HotNews.objects.only('id').filter(id=hotnews_id).first()
+        if hotnews:
+            hotnews.is_delete = True
+            hotnews.save(update_fields=['is_delete', 'update_time'])
+            return to_json_data(errmsg='热门文章删除成功!')
+        else:
+            return to_json_data(errno=Code.PARAMERR, errmsg='需要删除的热门文章不存在!')
+
+    def put(self, request, hotnews_id):
+        """
+        修改热门新闻
+        :param request:
+        :param hotnews_id:
+        :return:
+        """
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 将json转化为dict
+        dict_data = json.loads(json_data.decode('utf8'))
+
+        try:
+            priority = int(dict_data.get('priority'))
+            priority_list = [num for num, _ in models.HotNews.PRI_CHOICES]
+            if priority not in priority_list:
+                return to_json_data(errno=Code.PARAMERR, errmsg='热门文章优先级设置错误')
+        except Exception as e:
+            logger.info('热门文章优先级异常:\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='热门文章优先级设置错误')
+
+        hotnews = models.HotNews.objects.only('id').filter(id=hotnews_id).first()
+        if not hotnews:
+            return to_json_data(errno=Code.PARAMERR, errmsg='需要更新的热门文章不存在')
+        if hotnews.priority == priority:
+            return to_json_data(errno=Code.PARAMERR, errmsg='热门文章的优先级未改变')
+
+        hotnews.priority = priority
+        hotnews.save(update_fields=['priority', 'update_time'])
+        return to_json_data(errmsg='热门文章修改成功')
+
+
 
