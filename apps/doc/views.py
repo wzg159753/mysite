@@ -28,6 +28,17 @@ class DocDownload(View):
     """
     文件下载模块
     /doc/doc_id/
+    # 获取书籍的id，用于找到哪本书
+    # 如果书存在，获取书的url路径
+    # 将书名和后缀取出，用os方法
+    # 用split方法将后缀和书名分割，供下载使用
+    # 书的url地址拼接成绝对url路径
+    # 用requests方法请求书的url，下载二进制文件
+    # 使用django内置返回文件的FileResponse，返回二进制文件，stream在下载大文件时优化（try捕捉一下异常，可能会下载失败）
+    # 判断如果没有后缀，抛出异常， 有后缀就转化为小写
+    # 判断是什么后缀，就把COntent-type设置成什么后缀
+    # 用django内置方法，将书名中的不规范字符转化为规范
+    # 拼接Content-Disposition属性，然后返回FileResponse
     """
     def get(self, request, doc_id):
         # 查出要下载的是哪一本书

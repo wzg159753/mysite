@@ -7,6 +7,9 @@ from utils.models import ModelBase
 
 
 class Teacher(ModelBase):
+    """
+    教师表，存放课程教师
+    """
     name = models.CharField(max_length=150, verbose_name="讲师姓名", help_text='讲师姓名')
     positional_title = models.CharField(max_length=150, verbose_name="职称", help_text='职称')
     profile = models.TextField(verbose_name="简介", help_text='简介')
@@ -22,6 +25,9 @@ class Teacher(ModelBase):
 
 
 class CourseCategory(ModelBase):
+    """
+    课程分类表，课程属于哪一类
+    """
     name = models.CharField(max_length=100, verbose_name="课程分类名", help_text='课程分类名')
 
     class Meta:
@@ -34,6 +40,9 @@ class CourseCategory(ModelBase):
 
 
 class Course(ModelBase):
+    """
+    课程表，课程详细信息，以及分类，教师
+    """
     title = models.CharField(max_length=150, verbose_name="课程名", help_text='课程名')
     cover_url = models.URLField(verbose_name="课程封面图URL", help_text='课程封面图URL')
     video_url = models.URLField(verbose_name="课程视频URL", help_text='课程视频URL')

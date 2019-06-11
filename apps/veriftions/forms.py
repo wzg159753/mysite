@@ -12,13 +12,19 @@ mobile_validator = RegexValidator(r"^1[3-9]\d{9}$", "手机号码格式不正确
 class SmsCodeForm(forms.Form):
     """
     验证发送短信的三个字段
+    # 需要手机号来发送短信
+    # 图片uuid来获取验证码，用来比对
+    # 用户输入的验证码用来跟数据库中的验证码比对一致性
     """
+    # 手机号
     mobile = forms.CharField(max_length=11, min_length=11, validators=[mobile_validator], error_messages={
         'max_length': '密码超出最大长度',
         'min_length': '密码小于最小长度',
         'required': '手机号已存在'
     })
+    # 验证码uuid
     image_code_id = forms.UUIDField(error_messages={'required': '图片id不能为空'})
+    # 用户输入的验证码
     text = forms.CharField(max_length=4, min_length=4, error_messages={
         'max_length': '验证码超过最大长度',
         'min_length': '验证码小于最小长度',
@@ -36,6 +42,7 @@ class SmsCodeForm(forms.Form):
         image_code_id = clean_data.get('image_code_id')
         text = clean_data.get('text')
 
+        # 判断手机号存不存在
         if Users.objects.filter(mobile=mobile):
             raise forms.ValidationError('手机号码已经存在')
 
@@ -59,7 +66,9 @@ class SmsCodeForm(forms.Form):
 
         # 验证60秒 如果60s之内 不能发送
         sms_flag_key = f'sms_flag_{mobile}'
+        # 获取验证码状态标签
         sms_fmt = con.get(sms_flag_key)
+        # 如果有这个标签，则代表在60s之内，就把异常返回给后端
         if sms_fmt:
             raise forms.ValidationError('操作过于频繁，请60秒后发送')
 

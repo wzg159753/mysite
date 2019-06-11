@@ -20,7 +20,10 @@ logger = logging.getLogger('django')
 
 class IndexView(View):
     """
-    新闻首页面视图
+    新闻首页面动态显示标签和hot_news视图
+    # 查询所有未删除的tags
+    # 查询前三条热门新闻
+    # 渲染到浏览器
     """
 
     def get(self, request):
@@ -38,6 +41,12 @@ class IndexView(View):
 class NewsListView(View):
     """
     返回数据列表 前端ajax请求
+    /news/
+    # 获取前端url请求参数tag_id，即标签id，如果没传则为0，就是全部标签
+    # 从数据库查出所有新闻，关联Tag表的id，就会查出传来的tag_id所有的新闻
+    # 查出所有新闻后，用django内置分页，生成每页数据
+    # 获取传来的当前页page，如果没传则默认为第一页，如果超出索引则为最后一页。（有关url传参的按需求用try捕获一下，因为有可能不穿数据或者传递的格式错误）
+    # 序列化要返回的数据（要把最后一页返回给前端，这样前端才会知道什么时候后台没数据了，前端js可以提示用户）
     """
     def get(self, request):
         # 1、获取参数
@@ -106,6 +115,9 @@ class NewsBannerView(View):
     """
     轮播图视图,不需要额外参数,与js交互,返回json数据给ajax
     /news/banners/
+    # 拿到轮播图的大图和新闻id，title
+    # 序列化数据
+    # 返回给ajax
     """
     def get(self, request):
         # 查轮播图表，关联新闻表，取出新闻的id和title，注意轮播图有几条
@@ -133,6 +145,10 @@ class NewsDetailView(View):
     """
     新闻详情视图，需要接收一个参数，新闻的唯一id
     /news/<int:news_id>/
+    # 接收一个新闻唯一id，用于获取新闻
+    # 从数据库取出需要的字段
+    # 如果这条新闻存在，就取出所有评论
+    # 序列化评论列表，返回给前端
     """
     def get(self, request, news_id):
         """
@@ -163,6 +179,15 @@ class NewsCommentView(View):
     """
     新闻评论视图
     /news/<int:news_id>/comments/
+    # 需要新闻唯一id进行添加评论
+    # 先验证用户是否登录
+    # 验证这条新闻存不存在
+    # 拿到ajax传来的数据
+    # 拿到用户评论的内容，验证是否为空
+    # 拿到父评论，如果为空则代表第一次发，如果不为空则代表这次评论是子评论
+    # 查看有没有这条评论，并且news_id是当前新闻的news_id，parent_id是评论id
+    # 如果查不出来就抛出异常
+    # 如果查出来或者没有parent_id，就保存到数据库，save，ruturn保存成功
     """
     # 需要验证新闻存不存在，评论是否为空，是否有父评论，
     def post(self, request, news_id):
@@ -218,6 +243,11 @@ class NewsSearchView(_SearchView):
     """
     文章搜索视图
     /news/search/
+    # 用docker部署elasticsearch，并使用haystack中的搜索类，构建搜索视图
+    # 首先要获取是否传来了搜索内容，如果传了就用haystack搜索类，如果没传，就手写返回内容
+    # 如果没传就返回热门新闻，进行分页
+    # 获取page当前页，返回对应数据
+    # 如果传了，就用haystack内置的方法create_response，里面返回了对应的数据，很全
     """
     template = 'news/search.html'
     

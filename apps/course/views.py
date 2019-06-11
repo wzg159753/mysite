@@ -13,6 +13,7 @@ def course_index(request):
     """
     课堂app页
     /course/
+    # 返回所有课程信息，以及教师表的信息
     :param request:
     :return:
     """
@@ -22,7 +23,10 @@ def course_index(request):
 
 class CourseDetailView(View):
     """
+    # 课程详情，播放
     /course/<int:course_id>/
+    course_id是课程唯一值
+    查询唯一的课程，返回
     """
     def get(self, request, course_id):
         try:

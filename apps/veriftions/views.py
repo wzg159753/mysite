@@ -24,6 +24,7 @@ class CheckUsernameView(View):
     """
     # 验证用户名是否存在
     /usernames/(?P<username>\w{5,20})/
+    # 前端发送ajax请求，携带username参数，后台判断数据库中username存不存在
     """
     def get(self, request, username):
         # 统计一下数据库中用户名个数验证是否唯一
@@ -39,6 +40,7 @@ class CheckMobileView(View):
     """
     验证手机号
     /mobiles/(?P<mobile>1[3-9]\d{9})/
+    # 前端发送ajax请求，携带手机号参数，后台判断数据库中mobile存不存在
     """
     def get(self, request, mobile):
         # 统计mobile个数验证唯一
@@ -55,6 +57,9 @@ class ImageCode(View):
     返回图片验证码  图片src=“/image_codes/<uuid:image_code_id>/” 可以访问到后台
     自动发送请求，访问后台，获取图片
     /image_codes/<uuid:image_code_id>/
+    # 前端发送ajax请求，携带uuid唯一值（js中生成uuid）,后台调用生成验证码方法，生成验证码和图片
+    # 连接redis，生成一个唯一key，将验证码文本当做value存到redis
+    # 返回图片二进制，指定类型，展示到前端的图片验证码中
     """
     def get(self, request, image_code_id):
         """
@@ -83,6 +88,11 @@ class SmsCodeView(View):
     """
     验证发送短信验证码
     /sms_codes/
+    # 前端ajax传来数据，是json格式，转化为dict，用form内置表单验证，如果验证成功，自己生成六位数验证码
+    # 将验证码生成一个key，验证码当做value存放到redis中，生成一个验证码状态标记
+    # 连接redis，初始化管道pipeline，作用可以保存多个
+    # 保存验证码（验证码过期时间为五分钟）和状态标签（状态标签过期时间为60s）
+    # 然后就可以发送短息（这里成本原因，如果保存成功就代表验证成功，return成功）
     """
     def post(self, request):
         """

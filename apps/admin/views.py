@@ -21,8 +21,9 @@ class IndexView(View):
 
 class TagManageView(View):
     """
-    文章分类展示
+    文章分类展示，添加文章标签
     /admin/tags/
+    # 展示所有未删除的文章标签
     """
     def get(self, request):
         # 查询Tag与news关联，用聚合分组查出tag标签里面的文章数量，对数量进行排序
@@ -30,6 +31,15 @@ class TagManageView(View):
         return render(request, 'admin/news/tags_manage.html', locals())
 
     def post(self, request):
+        """
+        # 获取需要ajax传来的数据
+        # 拿到用户输入的文章标签名
+        # 查看标签名是否为空
+        # 用orm的创建查询方法
+        # 如果创建成功，就返回序列化的数据tag_dict给ajax
+        :param request:
+        :return:
+        """
         json_data = request.body
         if not json_data:
             return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
@@ -59,10 +69,14 @@ class TagEditView(View):
     """
     标签编辑，删除
     /admin/tags/tag_id/
+    # 都需要tag_id，就写到一个类里面
     """
     def delete(self, request, tag_id):
         """
         删除标签
+        # 查要删除的字段存不存在
+        # 如果存在就将is_delete设置为True，逻辑删除，保存
+        # 保存的时候只需要保存is_delete和修改时间就可以了
         :param request:
         :param tag_id:
         :return:
@@ -79,6 +93,10 @@ class TagEditView(View):
     def put(self, request, tag_id):
         """
         修改标签
+        # 从ajax获取用户输入的数据
+        # 拿到用户输入的标签名
+        # 将输入的标签名两边的空格去掉
+        # 判断数据库中有没有这条标签，如果没有就保存，返回ajax
         :param request:
         :param tag_id:
         :return:

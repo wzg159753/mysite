@@ -7,6 +7,7 @@ from .models import News
 class NewsIndex(indexes.SearchIndex, indexes.Indexable):
     """
     News索引数据模型类
+    # 注意使用elasticsearch必须要建立索引
     """
     # 这句话的意思是 document是否使用文件，use_template是否使用模板
     text = indexes.CharField(document=True, use_template=True)

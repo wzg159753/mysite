@@ -14,7 +14,7 @@ from utils.res_code import Code, error_map
 class RegisterForm(forms.Form):
     """
     用户注册form
-    字段要和前端name字段一致
+    字段要和前端html中的name属性一致
     """
     username = forms.CharField(label='用户名', max_length=20, min_length=5, error_messages={"min_length": "用户名长度要大于5", "max_length": "用户名长度要小于20",
                                                "required": "用户名不能为空"})
@@ -67,7 +67,9 @@ class RegisterForm(forms.Form):
         cleaned_data = super(RegisterForm, self).clean()
         password = cleaned_data.get('password')
         password_repeat = cleaned_data.get('password_repeat')
+        # 用户输入的短信验证码
         sms_code = cleaned_data.get('sms_code')
+        # 用户输入的手机号
         mobile = cleaned_data.get('mobile')
 
         # 对两次输入的密码一致性校验

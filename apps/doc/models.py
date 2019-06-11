@@ -5,12 +5,15 @@ from utils.models import ModelBase
 
 
 class Doc(ModelBase):
-    """create doc view
+    """
+    create doc view
+    # 建一个放文档的表，迁移一下
     """
     file_url = models.URLField(verbose_name="文件url", help_text="文件url")
     title = models.CharField(max_length=150, verbose_name="文档标题", help_text="文档标题")
     desc = models.TextField(verbose_name="文档描述", help_text="文档描述")
     image_url = models.URLField(default="", verbose_name="图片url", help_text="图片url")
+    # 外间关联作者是谁
     author = models.ForeignKey('users.Users', on_delete=models.SET_NULL, null=True)
 
     class Meta:
