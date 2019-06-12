@@ -87,6 +87,8 @@ $(function () {
             if (res.errno === "0") {
               // 更新标签成功
               $(_this).parents('tr').find('td:nth-child(1)').text(inputVal);
+//              ************************************************************
+//              $(_this).parents('tr').attr('data-name', inputVal);
               // 这里需要将页面的data_name 也修改一下 才能每次修改正确
               swal.close();
               message.showSuccess("标签修改成功");
