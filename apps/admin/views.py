@@ -137,6 +137,12 @@ class HotNewsManageView(View):
     /hotnews/
     """
     def get(self, request):
+        """
+        显示前三条的热门新闻
+        :param request:
+        :return:
+        """
+        # 需要显示news的title，news标签的name，优先级  select_related('news__tag'),关联news表并且关联tag表
         hot_news = models.HotNews.objects.select_related('news__tag').only('news__title', 'news_id', 'news__tag__name', 'priority').filter(is_delete=False).order_by('priority', '-update_time')[:contants.SHOW_HOTNEWS_COUNT]
         return render(request, 'admin/news/news_hot.html', locals())
 
@@ -152,9 +158,12 @@ class HotNewsEditView(View):
         :param request:
         :return:
         """
+        # 先查出这条新闻有没有
         hotnews = models.HotNews.objects.only('id').filter(id=hotnews_id).first()
         if hotnews:
+            # 逻辑删除
             hotnews.is_delete = True
+            # 只保存修改的字段
             hotnews.save(update_fields=['is_delete', 'update_time'])
             return to_json_data(errmsg='热门文章删除成功!')
         else:
@@ -174,23 +183,102 @@ class HotNewsEditView(View):
         dict_data = json.loads(json_data.decode('utf8'))
 
         try:
+            # 获取传来的参数，并且转为int，可能出错 try一下，因为传来的可能不是字符型数字
             priority = int(dict_data.get('priority'))
+            # 生成优先级列表 就是里面有哪些优先级
             priority_list = [num for num, _ in models.HotNews.PRI_CHOICES]
+            # 判断修改的优先级是不是列表中的优先级
             if priority not in priority_list:
                 return to_json_data(errno=Code.PARAMERR, errmsg='热门文章优先级设置错误')
         except Exception as e:
             logger.info('热门文章优先级异常:\n{}'.format(e))
             return to_json_data(errno=Code.PARAMERR, errmsg='热门文章优先级设置错误')
 
+        # 查看这条热门新闻存不存在
         hotnews = models.HotNews.objects.only('id').filter(id=hotnews_id).first()
         if not hotnews:
             return to_json_data(errno=Code.PARAMERR, errmsg='需要更新的热门文章不存在')
+        # 判断输入的优先级和这条新闻的优先级是否一样，如果一样则代表没修改
         if hotnews.priority == priority:
             return to_json_data(errno=Code.PARAMERR, errmsg='热门文章的优先级未改变')
 
+        # 如果上面验证没问题 就重新赋值，保存
         hotnews.priority = priority
         hotnews.save(update_fields=['priority', 'update_time'])
         return to_json_data(errmsg='热门文章修改成功')
+
+
+class HotNewsAddView(View):
+    """
+    添加热门新闻
+    """
+    def get(self, request):
+        # 查出所有tags标签和每个标签下的新闻数量，聚合分组
+        tags = models.Tag.objects.values('id', 'name').annotate(num_news=Count('news')).filter(is_delete=False).order_by('-num_news', 'update_time')
+        # 将HotNews中的优先级别拿到 转成dict，供前端展示选择
+        priority_dict = dict(models.HotNews.PRI_CHOICES)
+        return render(request, 'admin/news/news_hot_add.html', locals())
+
+    def post(self, request, tag_id):
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 将json转化为dict
+        dict_data = json.loads(json_data.decode('utf8'))
+
+        # 判断文章存不存在，以及int转的时候异常捕捉
+        try:
+            news_id = int(dict_data.get('news_id', None))
+            # 如果没有这条新闻，return错误
+            if not models.News.objects.only('id').filter(is_delete=False, id=news_id).exists():
+                return to_json_data(errno=Code.PARAMERR, errmsg='文章不存在')
+        except Exception as e:
+            logger.info('热门文章:\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='参数错误')
+
+        # 判断优先级
+        try:
+            # 转int，可能会报错，try
+            priority = int(dict_data.get('priority', None))
+            # 拿到优先级列表
+            priority_nums = [num for num, _ in models.HotNews.PRI_CHOICES]
+            # 判断用户输入的优先级在不在列表中
+            if priority not in priority_nums:
+                return to_json_data(errno=Code.PARAMERR, errmsg='热门文章的优先级设置错误')
+        except Exception as e:
+            logger.info('热门文章优先级异常：\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='热门文章的优先级设置错误')
+
+        # 有则查无责增方法，如果查出来，is_created就是False， 如果创建，则为True（hotnews是查出来或创建的实例）
+        hotnews, is_created = models.HotNews.objects.get_or_create(news_id=news_id)
+        # 如果创建成功
+        if is_created:
+            # 就改优先级
+            hotnews.priority = priority
+            hotnews.save(update_fields=['priority', 'update_time'])
+            return to_json_data(errmsg="热门文章创建成功")
+        else:
+            # 否则就是已存在
+            return to_json_data(errmsg='热门新闻已存在')
+
+
+class NewsByTagIdView(View):
+    """
+    返回所有对应tag_id的新闻
+    /admin/tags/<int:tag_id>/news/
+    """
+    def get(self, request, tag_id):
+        newses = models.News.objects.values('id', 'title').filter(is_delete=False, tag_id=tag_id)
+        news_list = [i for i in newses]
+        data = {
+            'news': news_list
+        }
+        return to_json_data(data=data)
+
+
+
+
+
 
 
 

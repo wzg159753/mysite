@@ -40,7 +40,7 @@
               <tr data-id="{{ hot_new.id }}" data-name="{{ hot_new.news.title }}">
                 <td>
 {#         {% url 'news:news_detail' hot_new.news_id %}           #}
-                  <a href="#" data-news-id="{{ hot_new.news_id }}">
+                  <a href="{% url 'news:detail_news' hot_new.news_id %}" data-news-id="{{ hot_new.news_id }}">
                     {{ hot_new.news.title }}
                   </a>
                 </td>
