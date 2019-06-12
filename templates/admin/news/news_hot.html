@@ -20,7 +20,7 @@
       <div class="box box-primary">
         <div class="box-header">
 {#      {% url 'admin:hotnews_add' %}      #}
-          <a href="" class="btn btn-primary pull-right"
+          <a href="{% url 'admin:hotnews_add' %}" class="btn btn-primary pull-right"
              id="btn-add-news-recommend">添加热门文章</a>
         </div>
         <div class="box-body">
@@ -46,7 +46,7 @@
                 </td>
 
                 <td>{{ hot_new.news.tag.name }}</td>
-                <td>{{ hot_new.priority }}</td>
+                <td>{{ hot_new.get_priority_display }}</td>
                 <td>
                   <button class="btn btn-xs btn-warning btn-edit"
                     data-priority="{{ hot_new.priority }}">编辑</button>

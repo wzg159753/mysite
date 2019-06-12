@@ -143,7 +143,7 @@ class HotNewsManageView(View):
         :return:
         """
         # 需要显示news的title，news标签的name，优先级  select_related('news__tag'),关联news表并且关联tag表
-        hot_news = models.HotNews.objects.select_related('news__tag').only('news__title', 'news_id', 'news__tag__name', 'priority').filter(is_delete=False).order_by('priority', '-update_time')[:contants.SHOW_HOTNEWS_COUNT]
+        hot_news = models.HotNews.objects.select_related('news').only('news__title', 'news_id', 'news__tag__name', 'priority').filter(is_delete=False).order_by('priority', '-update_time')[:contants.SHOW_HOTNEWS_COUNT]
         return render(request, 'admin/news/news_hot.html', locals())
 
 
@@ -211,6 +211,7 @@ class HotNewsEditView(View):
 class HotNewsAddView(View):
     """
     添加热门新闻
+    /admin/hotnews/add/
     """
     def get(self, request):
         # 查出所有tags标签和每个标签下的新闻数量，聚合分组
@@ -219,7 +220,7 @@ class HotNewsAddView(View):
         priority_dict = dict(models.HotNews.PRI_CHOICES)
         return render(request, 'admin/news/news_hot_add.html', locals())
 
-    def post(self, request, tag_id):
+    def post(self, request):
         json_data = request.body
         if not json_data:
             return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
