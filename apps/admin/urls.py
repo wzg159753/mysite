@@ -5,10 +5,13 @@ from . import views
 app_name = 'admin'
 
 urlpatterns = [
-    # 文章标签
+    # 后台admin首页面
     path('', views.IndexView.as_view(), name='index'),
+
+    # 文章标签
     path('tags/', views.TagManageView.as_view(), name='tags'),
     path('tags/<int:tag_id>/', views.TagEditView.as_view(), name='tag_edit'),
+
     # 热门新闻
     path('hotnews/', views.HotNewsManageView.as_view(), name='hotnews'),
     path('hotnews/<int:hotnews_id>/', views.HotNewsEditView.as_view(), name='hotnews_edit'),

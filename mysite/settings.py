@@ -278,4 +278,5 @@ HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 # 根路由
-SITE_DOMAIN_PORT = "http://127.0.0.1:8000/"
+SITE_DOMAIN_PORT = "http://192.168.35.133:9000/"
+
