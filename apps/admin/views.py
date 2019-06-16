@@ -1,7 +1,10 @@
 import json
 import logging
 
+from datetime import datetime
+from django.core.paginator import Paginator, EmptyPage
 from django.shortcuts import render
+from django.utils.http import urlencode
 from django.views import View
 from django.db.models import Count
 
@@ -10,6 +13,7 @@ from news1 import models
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
 from . import contants
+from utils.paginator_script import get_paginator_data
 
 logger = logging.getLogger('django')
 
@@ -134,7 +138,7 @@ class TagEditView(View):
 class HotNewsManageView(View):
     """
     热门新闻
-    /hotnews/
+    /admin/hotnews/
     """
     def get(self, request):
         """
@@ -150,7 +154,7 @@ class HotNewsManageView(View):
 class HotNewsEditView(View):
     """
     热门文章修改删除
-    /hotnews/<int:hotnews_id>/
+    /admin/hotnews/<int:hotnews_id>/
     """
     def delete(self, request, hotnews_id):
         """
@@ -275,6 +279,108 @@ class NewsByTagIdView(View):
             'news': news_list
         }
         return to_json_data(data=data)
+
+
+class NewsManageView(View):
+    """
+    文章管理页
+    /admin/
+    title author_username tag_name update_time id
+    """
+    def get(self, request):
+        # 先查出所有newses，供后面查询使用
+        newses = models.News.objects.select_related('tag', 'author').only('id', 'title', 'author__username',
+                                                                          'tag__name', 'update_time').filter(
+            is_delete=False)
+        # 查出所有tag，需要展示到前端，让客户选择查询
+        tags = models.Tag.objects.only('id', 'name').filter(is_delete=False)
+
+        fmt = '%Y/%m/%d'
+        try:
+            # 对时间字符串进行处理，转化为日期格式
+            start_time = request.GET.get('start_time', '')
+            start_time = datetime.strptime(start_time, fmt) if start_time else ''
+            end_time = request.GET.get('end_time', '')
+            end_time = datetime.strptime(end_time, fmt) if end_time else ''
+        except Exception as e:
+            logger.info("用户输入的时间有误：\n{}".format(e))
+            start_time = end_time = ''
+
+        # 如果有开始时间 没有结束时间
+        if start_time and (not end_time):
+            # 就返回大于开始时间的所有
+            newses = newses.filter(update_time__gte=start_time)
+        if end_time and (not start_time):
+            newses = newses.filter(update_time__lte=end_time)
+        if start_time and end_time:
+            newses = newses.filter(update_time__range=(start_time, end_time))
+
+        # 对作者进行忽略大小写的模糊查询
+        author_username = request.GET.get('author_name', '')
+        if author_username:
+            newses = newses.filter(author__username__icontains=author_username)
+
+        # 对文章标题进行模糊查询
+        title = request.GET.get('title', '')
+        if title:
+            newses = newses.filter(title__icontains=title)
+
+        # 对标签进行查询
+        try:
+            # int型 如果没传 就等于0
+            tag_id = int(request.GET.get('tag_id', 0))
+        except Exception as e:
+            logger.info("标签错误：\n{}".format(e))
+            # 如果出错 也等于0
+            tag_id = 0
+        if tag_id:
+            newses = newses.filter(tag_id=tag_id)
+
+        # 生成分页对象
+        paginator = Paginator(newses, contants.PER_PAGE_NEWS_COUNT)
+
+        # 获取当前页号，int一下，捕捉一下
+        try:
+            pg = int(request.GET.get('page', 1))
+        except Exception as e:
+            logger.info("当前页数错误：\n{}".format(e))
+            pg = 1
+        # 获取当前页数据
+        try:
+            news_list = paginator.page(pg)
+        except EmptyPage:
+            logging.info("用户访问的页数大于总页数。")
+            news_list = paginator.page(paginator.num_pages)
+
+        # 获取分页后的数据
+        paginator_data = get_paginator_data(paginator, news_list)
+
+        # 将时间日期格式转为str格式
+        start_time = start_time.strftime(fmt) if start_time else ''
+        end_time = end_time.strftime(fmt) if end_time else ''
+
+        # 构造参数
+        context = {
+            'news_info': news_list,
+            'tags': tags,
+            'start_time': start_time,
+            "end_time": end_time,
+            "title": title,
+            "author_name": author_username,
+            "tag_id": tag_id,
+            "other_param": urlencode({
+                "start_time": start_time,
+                "end_time": end_time,
+                "title": title,
+                "author_name": author_username,
+                "tag_id": tag_id,
+            })
+        }
+        # 将分页里的参数更新到参数中
+        context.update(paginator_data)
+        return render(request, 'admin/news/news_manage.html', context=context)
+
+
 
 
 
