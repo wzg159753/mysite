@@ -356,6 +356,7 @@ class NewsManageView(View):
         paginator_data = get_paginator_data(paginator, news_list)
 
         # 将时间日期格式转为str格式
+        # 一定要判断存不存在，如果不判断，会报错
         start_time = start_time.strftime(fmt) if start_time else ''
         end_time = end_time.strftime(fmt) if end_time else ''
 
