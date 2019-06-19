@@ -146,7 +146,7 @@ class SmsCodeView(View):
 
             # 发送短信验证码
             # try:
-            #     result = sms.ccp.send_template_sms(mobile, [sms_text, constants.SMS_CODE_REDIS_EXPIRES], constants.SMS_CODE_TEMP_ID)
+            #     result = sms.ccp.send_template_sms(mobile, [sms_text, 5], constants.SMS_CODE_TEMP_ID)
             #     logger.info(f'发送成功_{mobile}')
             # except Exception as e:
             #     logger.error(f'发送验证码错误_error_msg_{e}')

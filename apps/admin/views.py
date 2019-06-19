@@ -352,7 +352,7 @@ class NewsManageView(View):
             logging.info("用户访问的页数大于总页数。")
             news_list = paginator.page(paginator.num_pages)
 
-        # 获取分页后的数据
+        # 获取分页后的数据,手写分页
         paginator_data = get_paginator_data(paginator, news_list)
 
         # 将时间日期格式转为str格式
@@ -369,6 +369,7 @@ class NewsManageView(View):
             "title": title,
             "author_name": author_username,
             "tag_id": tag_id,
+            # 点击下一页数据时，自动带上之前的搜索条件
             "other_param": urlencode({
                 "start_time": start_time,
                 "end_time": end_time,
