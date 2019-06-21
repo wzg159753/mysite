@@ -20,6 +20,7 @@ from utils.res_code import Code, error_map
 # 生成日志器
 logger = logging.getLogger('django')
 
+
 class CheckUsernameView(View):
     """
     # 验证用户名是否存在
@@ -43,7 +44,12 @@ class CheckMobileView(View):
     # 前端发送ajax请求，携带手机号参数，后台判断数据库中mobile存不存在
     """
     def get(self, request, mobile):
-        # 统计mobile个数验证唯一
+        """
+        统计mobile个数验证唯一
+        :param request:
+        :param mobile:
+        :return:
+        """
         count = models.Users.objects.filter(mobile=mobile).count()
         data = {
             'count': count,

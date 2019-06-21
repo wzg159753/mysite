@@ -27,6 +27,7 @@ class IndexView(View):
         return render(request, 'admin/index/index.html')
 
 
+# 标签管理，添加，删除，修改
 class TagManageView(View):
     """
     文章分类展示，添加文章标签
@@ -135,6 +136,7 @@ class TagEditView(View):
             return to_json_data(errno=Code.PARAMERR, errmsg='标签不存在')
 
 
+# 热门新闻管理，添加，删除，修改
 class HotNewsManageView(View):
     """
     热门新闻
@@ -281,6 +283,7 @@ class NewsByTagIdView(View):
         return to_json_data(data=data)
 
 
+# 新闻管理
 class NewsManageView(View):
     """
     文章管理页
