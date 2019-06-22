@@ -281,5 +281,5 @@ HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 SITE_DOMAIN_PORT = "http://192.168.35.133:9000/"
 
 # fastdfs服务的站点
-FASTDFS_SERVER_DOMAIN = "http://127.0.0.1:8888/"
+FASTDFS_SERVER_DOMAIN = "http://192.168.35.133:8888/"
 
