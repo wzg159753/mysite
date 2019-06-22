@@ -27,6 +27,7 @@ class IndexView(View):
         return render(request, 'admin/index/index.html')
 
 
+# 标签管理，添加，删除，修改
 class TagManageView(View):
     """
     文章分类展示，添加文章标签
@@ -135,6 +136,7 @@ class TagEditView(View):
             return to_json_data(errno=Code.PARAMERR, errmsg='标签不存在')
 
 
+# 热门新闻管理，添加，删除，修改
 class HotNewsManageView(View):
     """
     热门新闻
@@ -281,6 +283,7 @@ class NewsByTagIdView(View):
         return to_json_data(data=data)
 
 
+# 新闻管理
 class NewsManageView(View):
     """
     文章管理页
@@ -352,7 +355,7 @@ class NewsManageView(View):
             logging.info("用户访问的页数大于总页数。")
             news_list = paginator.page(paginator.num_pages)
 
-        # 获取分页后的数据
+        # 获取分页后的数据,手写分页
         paginator_data = get_paginator_data(paginator, news_list)
 
         # 将时间日期格式转为str格式
@@ -369,6 +372,7 @@ class NewsManageView(View):
             "title": title,
             "author_name": author_username,
             "tag_id": tag_id,
+            # 点击下一页数据时，自动带上之前的搜索条件
             "other_param": urlencode({
                 "start_time": start_time,
                 "end_time": end_time,

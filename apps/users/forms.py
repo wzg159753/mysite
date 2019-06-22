@@ -41,7 +41,7 @@ class RegisterForm(forms.Form):
         :return:
         """
         username = self.cleaned_data.get('username')
-        if Users.objects.filter(username=username):
+        if Users.objects.filter(username=username).exists():
             raise forms.ValidationError('用户名已经存在')
 
         return username
