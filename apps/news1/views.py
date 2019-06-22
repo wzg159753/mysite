@@ -214,7 +214,7 @@ class NewsCommentView(View):
             return to_json_data(errno=Code.NODATA, errmsg='内容不能为空')
 
         # 拿到父评论  可以没有
-        parent_id = dict_data.get('parent_id')
+        parent_id = dict_data.get('parent_id', None)
         # 捕捉异常 如果不是字符型数字，则强转会出错
         try:
             if parent_id:
@@ -258,7 +258,7 @@ class NewsSearchView(_SearchView):
         :return: 
         """
         # 获取前端传来的查询内容
-        kw = self.request.GET.get('q')
+        kw = self.request.GET.get('q', None)
         if not kw:
             show_all = True
             # 如果没有就返回热门新闻

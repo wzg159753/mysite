@@ -19,6 +19,10 @@ urlpatterns = [
     path('tags/<int:tag_id>/news/', views.NewsByTagIdView.as_view(), name='news_by_tagid'),
 
     # 文章管理
-    path('news/', views.NewsManageView.as_view(), name='news_manage')
+    path('news/', views.NewsManageView.as_view(), name='news_manage'),
+
+    # 文章添加
+    path('news/pub/', views.NewsPubView.as_view(), name='news_pub'),
+    path('news/images/', views.NewsUploadImageView.as_view(), name='upload_image')
 
 ]

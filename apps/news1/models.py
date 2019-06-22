@@ -61,7 +61,6 @@ class Comments(ModelBase):
     parent: 是否有父评论
     """
     content = models.TextField(verbose_name="内容", help_text="内容")
-
     author = models.ForeignKey('users.Users', on_delete=models.SET_NULL, null=True)
     news = models.ForeignKey('News', on_delete=models.CASCADE)
 

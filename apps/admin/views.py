@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 from datetime import datetime
 from django.core.paginator import Paginator, EmptyPage
@@ -12,6 +13,8 @@ from news1 import models
 # Create your views here.
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
+from utils.fastdfs.fast import FDFS_Client
+from mysite import settings
 from . import contants
 from utils.paginator_script import get_paginator_data
 
@@ -384,6 +387,51 @@ class NewsManageView(View):
         # 将分页里的参数更新到参数中
         context.update(paginator_data)
         return render(request, 'admin/news/news_manage.html', context=context)
+
+
+class NewsPubView(View):
+    """
+    /admin/news/pub/
+    """
+    def get(self, request):
+        tags = models.Tag.objects.only('id', 'name').filter(is_delete=False)
+        return render(request, 'admin/news/news_pub.html', locals())
+
+
+class NewsUploadImageView(View):
+    """
+    ajax发送post
+    """
+    def post(self, request):
+        image = request.FILES.get('image_file', None)
+        if not image:
+            logger.info('从前端获取图片失败')
+            return to_json_data(errno=Code.NODATA, errmsg='从前端获取图片失败')
+
+        if image.content_type not in ('image/jpg', 'image/png', 'image/gif', 'image/jpeg'):
+            return to_json_data(errno=Code.DATAERR, errmsg='不能上传非图片文件')
+        try:
+            image_name, ext = os.path.splitext(image.name)
+        except Exception as e:
+            logger.info('图片拓展名异常：{}'.format(e))
+            ext = 'jpg'
+
+        try:
+            ret = FDFS_Client.upload_by_buff(image.read(), image_ext_name=ext)
+
+        except Exception as e:
+            logger.error('图片上传出现异常：{}'.format(e))
+            return to_json_data(errno=Code.UNKOWNERR, errmsg='图片上传异常')
+
+        else:
+            if ret.get('Status') != 'Upload successed':
+                logger.info('图片上传到FastDFS服务器失败')
+                return to_json_data(Code.UNKOWNERR, errmsg='图片上传到服务器失败')
+            else:
+                image_rel_url = ret.get('Remote file_id')
+                image_url = settings.FASTDFS_SERVER_DOMAIN + image_rel_url
+                return to_json_data(data={'image_url': image_url}, errmsg='图片上传成功')
+
 
 
 

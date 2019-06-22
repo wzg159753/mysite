@@ -7,8 +7,8 @@ from django.http import FileResponse, Http404
 from django.utils.encoding import escape_uri_path
 from django.views import View
 
+
 from . import models
-from mysite.settings import SITE_DOMAIN_PORT
 # Create your views here.
 
 logger = logging.getLogger('django')
@@ -49,10 +49,9 @@ class DocDownload(View):
             # split方法将地址分割成xxxx.pdf
             _, root = os.path.split(doc_url)
             # 用split将书分割成书名和后缀，供后面使用
-            # (xxx, pdf)
             _, ext = root.split('.')
             # 拼接成路由url
-            dir_path = SITE_DOMAIN_PORT + doc_url
+            dir_path = 'http://192.168.35.133:9000' + doc_url
             try:
                 # 有可能下载失败，需要try
                 # stream 在下载大文件时候速度快

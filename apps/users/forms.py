@@ -48,7 +48,7 @@ class RegisterForm(forms.Form):
 
     def clean_mobile(self):
         """
-        单个验证
+        单个验证手机号
         :return:
         """
         mobile = self.cleaned_data.get('mobile')

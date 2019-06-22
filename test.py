@@ -29,14 +29,13 @@ import string
 # t2 = Test2('xiaowang')
 # t2.get()
 
-# a = 1
-# b = 2
-# c = 4
-# d = 6
-# e = 20
-#
-# result = (a if a == 2 else None) or (b if b == 3 else None)
-result = '%06d' % random.randint(100000, 999999)
+a = 1
+b = 2
+c = 4
+d = 6
+e = 20
+
+result = (a if a == 2 else None) or (b if b == 3 else None)
 print(result)
 
 
