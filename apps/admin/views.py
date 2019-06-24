@@ -1,21 +1,22 @@
 import json
 import logging
-import os
-
 from datetime import datetime
-from django.core.paginator import Paginator, EmptyPage
-from django.shortcuts import render
-from django.utils.http import urlencode
+
+import qiniu
 from django.views import View
 from django.db.models import Count
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.utils.http import urlencode
+from django.core.paginator import Paginator, EmptyPage
 
+from . import contants
 from news1 import models
-# Create your views here.
+from mysite import settings
+from utils.secrets import qiniu_secret
 from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
 from utils.fastdfs.fast import FDFS_Client
-from mysite import settings
-from . import contants
 from utils.paginator_script import get_paginator_data
 
 logger = logging.getLogger('django')
@@ -400,6 +401,7 @@ class NewsPubView(View):
         return render(request, 'admin/news/news_pub.html', locals())
 
 
+# 文章上传，编辑，删除
 class NewsUploadImageView(View):
     """
     ajax发送post
@@ -444,6 +446,58 @@ class NewsUploadImageView(View):
                 # 拼接成绝对路径，返回给前端
                 image_url = settings.FASTDFS_SERVER_DOMAIN + image_rel_url
                 return to_json_data(data={'image_url': image_url}, errmsg='图片上传成功')
+
+
+# 获取七牛云token
+class UploadToken(View):
+    """
+    /admin/token/
+    获取七牛云token
+    """
+    def get(self, request):
+        access_key = qiniu_secret.QI_NIU_ACCESS_KEY
+        secret_key = qiniu_secret.QI_NIU_SECRET_KEY
+        bucket_name = qiniu_secret.QI_NIU_BUCKET_NAME
+
+        q = qiniu.Auth(access_key, secret_key)
+        token = q.upload_token(bucket_name)
+
+        return JsonResponse({'uptoken': token})
+
+
+class MarkDownUploadImage(View):
+    """
+    富文本编辑器图片上传
+    /admin/markdown/images/
+    """
+    def post(self, request):
+        image = request.FILES.get('editormd-image-file')
+        if not image:
+            return to_json_data()
+
+        if image.content_type not in ('image/jpeg', 'image/jpg', 'image/png', 'image/gif'):
+            return to_json_data()
+
+        try:
+            ext = image.name.split('.')[-1]
+        except Exception as e:
+            logger.info()
+            ext = 'jpg'
+
+        try:
+            ret = FDFS_Client.upload_by_buffer(image.read(), file_ext_name=ext)
+        except Exception as e:
+            logger.warning(e)
+            return to_json_data()
+
+        else:
+            if ret.get('Status') != 'Upload successed.':
+                logger.info()
+                return to_json_data()
+            else:
+                image_rel_url = ret.get('Remote file_id')
+                image_url = settings.FASTDFS_SERVER_DOMAIN + image_rel_url
+                return to_json_data(data={'image_url': image_url})
 
 
 

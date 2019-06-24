@@ -23,6 +23,12 @@ urlpatterns = [
 
     # 文章添加
     path('news/pub/', views.NewsPubView.as_view(), name='news_pub'),
-    path('news/images/', views.NewsUploadImageView.as_view(), name='upload_image')
+    path('news/images/', views.NewsUploadImageView.as_view(), name='upload_image'),
+
+    # 获取七牛云token
+    path('token/'),
+
+    # 富文本编辑器图片上传
+    path('markdown/images', views.MarkDownUploadImage.as_view(), name='markdown_image_upload')
 
 ]
