@@ -405,6 +405,7 @@ class NewsPubView(View):
 class NewsUploadImageView(View):
     """
     ajax发送post
+    /admin/news/images/
     """
     def post(self, request):
         # 获取上传的image图片对象
@@ -473,32 +474,32 @@ class MarkDownUploadImage(View):
     def post(self, request):
         image = request.FILES.get('editormd-image-file')
         if not image:
-            return to_json_data()
+            logger.info('从前端获取图片失败')
+            return JsonResponse({'success': 0, 'message': '从前端获取图片失败'})
 
         if image.content_type not in ('image/jpeg', 'image/jpg', 'image/png', 'image/gif'):
-            return to_json_data()
+            return JsonResponse({'success': 0, 'message': '从前端获取图片失败'})
 
         try:
             ext = image.name.split('.')[-1]
         except Exception as e:
-            logger.info()
+            logger.info('图片拓展名异常：{}'.format(e))
             ext = 'jpg'
 
         try:
             ret = FDFS_Client.upload_by_buffer(image.read(), file_ext_name=ext)
         except Exception as e:
-            logger.warning(e)
-            return to_json_data()
+            logger.info('图片上传到FastDFS服务器失败')
+            return JsonResponse({'success': 0, 'message': '图片上传到服务器失败'})
 
         else:
             if ret.get('Status') != 'Upload successed.':
-                logger.info()
-                return to_json_data()
+                logger.info('图片上传到FastDFS服务器失败')
+                return JsonResponse({'success': 0, 'message': '图片上传到服务器失败'})
             else:
                 image_rel_url = ret.get('Remote file_id')
                 image_url = settings.FASTDFS_SERVER_DOMAIN + image_rel_url
-                return to_json_data(data={'image_url': image_url})
-
+                return JsonResponse({'success': 1, 'message': '图片上传成功', 'url': image_url})
 
 
 

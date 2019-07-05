@@ -26,7 +26,7 @@ urlpatterns = [
     path('news/images/', views.NewsUploadImageView.as_view(), name='upload_image'),
 
     # 获取七牛云token
-    path('token/'),
+    path('token/', views.UploadToken, name='upload_token'),
 
     # 富文本编辑器图片上传
     path('markdown/images', views.MarkDownUploadImage.as_view(), name='markdown_image_upload')
