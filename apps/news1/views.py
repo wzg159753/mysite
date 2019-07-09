@@ -4,6 +4,7 @@ import logging
 from django.views import View
 from django.http import Http404
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from haystack.views import SearchView as _SearchView
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 

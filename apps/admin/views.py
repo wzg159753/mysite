@@ -455,15 +455,16 @@ class UploadToken(View):
     /admin/token/
     获取七牛云token
     """
+
     def get(self, request):
         access_key = qiniu_secret.QI_NIU_ACCESS_KEY
         secret_key = qiniu_secret.QI_NIU_SECRET_KEY
         bucket_name = qiniu_secret.QI_NIU_BUCKET_NAME
-
+        # 构建鉴权对象
         q = qiniu.Auth(access_key, secret_key)
         token = q.upload_token(bucket_name)
 
-        return JsonResponse({'uptoken': token})
+        return JsonResponse({"uptoken": token})
 
 
 class MarkDownUploadImage(View):
@@ -472,38 +473,33 @@ class MarkDownUploadImage(View):
     /admin/markdown/images/
     """
     def post(self, request):
-        image = request.FILES.get('editormd-image-file')
-        if not image:
+        image_file = request.FILES.get('editormd-image-file')
+        if not image_file:
             logger.info('从前端获取图片失败')
             return JsonResponse({'success': 0, 'message': '从前端获取图片失败'})
 
-        if image.content_type not in ('image/jpeg', 'image/jpg', 'image/png', 'image/gif'):
-            return JsonResponse({'success': 0, 'message': '从前端获取图片失败'})
+        if image_file.content_type not in ('image/jpeg', 'image/png', 'image/gif'):
+            return JsonResponse({'success': 0, 'message': '不能上传非图片文件'})
 
         try:
-            ext = image.name.split('.')[-1]
+            image_ext_name = image_file.name.split('.')[-1]
         except Exception as e:
             logger.info('图片拓展名异常：{}'.format(e))
-            ext = 'jpg'
+            image_ext_name = 'jpg'
 
         try:
-            ret = FDFS_Client.upload_by_buffer(image.read(), file_ext_name=ext)
+            upload_res = FDFS_Client.upload_by_buffer(image_file.read(), file_ext_name=image_ext_name)
         except Exception as e:
-            logger.info('图片上传到FastDFS服务器失败')
-            return JsonResponse({'success': 0, 'message': '图片上传到服务器失败'})
-
+            logger.error('图片上传出现异常：{}'.format(e))
+            return JsonResponse({'success': 0, 'message': '图片上传异常'})
         else:
-            if ret.get('Status') != 'Upload successed.':
+            if upload_res.get('Status') != 'Upload successed.':
                 logger.info('图片上传到FastDFS服务器失败')
                 return JsonResponse({'success': 0, 'message': '图片上传到服务器失败'})
             else:
-                image_rel_url = ret.get('Remote file_id')
-                image_url = settings.FASTDFS_SERVER_DOMAIN + image_rel_url
+                image_name = upload_res.get('Remote file_id')
+                image_url = settings.FASTDFS_SERVER_DOMAIN + image_name
                 return JsonResponse({'success': 1, 'message': '图片上传成功', 'url': image_url})
-
-
-
-
 
 
 

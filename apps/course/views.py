@@ -32,6 +32,6 @@ class CourseDetailView(View):
         try:
             course = models.Course.objects.select_related('teacher').only('title', 'cover_url', 'video_url', 'profile', 'outline', 'teacher__name', 'teacher__avatar_url','teacher__positional_title', 'teacher__profile').filter(is_delete=False, id=course_id).first()
             return render(request, 'course/course_detail.html', locals())
-        except Exception as e:
+        except models.Course.DoesNotExist as e:
             logger.error('课程异常:{}'.format(e))
             raise Http404('此课程已经下架')
