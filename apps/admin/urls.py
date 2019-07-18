@@ -30,6 +30,9 @@ urlpatterns = [
     path('token/', views.UploadToken.as_view(), name='upload_token'),
 
     # 富文本编辑器图片上传
-    path('markdown/images', views.MarkDownUploadImage.as_view(), name='markdown_image_upload')
+    path('markdown/images', views.MarkDownUploadImage.as_view(), name='markdown_image_upload'),
+
+    # 轮播图
+    path('banners/', views.BannerManageView.as_view(), name='banners_manage')
 
 ]

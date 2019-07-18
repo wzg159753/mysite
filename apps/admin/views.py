@@ -11,6 +11,7 @@ from django.utils.http import urlencode
 from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator, EmptyPage
 
+from . import forms
 from . import contants
 from news1 import models
 from mysite import settings
@@ -391,6 +392,84 @@ class NewsManageView(View):
         return render(request, 'admin/news/news_manage.html', context=context)
 
 
+# 文章上传，编辑，删除
+class NewsEditView(View):
+    """
+    新闻编辑，删除
+    /admin/news/<int:new_id>/
+    """
+    def get(self, request, new_id):
+        """
+        返回新闻修改页面
+        :param request:
+        :param new_id:
+        :return:
+        """
+
+        news = models.News.objects.only('id', 'title').filter(is_delete=False, id=new_id)
+        if news:
+            tags = models.Tag.objects.only('id', 'name').filter(is_delete=False)
+            context = {
+                'news': news.first(),
+                'tags': tags
+            }
+            return render(request, 'admin/news/news_pub.html', context=context)
+
+        else:
+            return Http404
+
+    def put(self, request, new_id):
+        """
+        修改新闻
+        :param request:
+        :param new_id:
+        :return:
+        """
+        news = models.News.objects.only('id').filter(is_delete=False, id=new_id).first()
+        if not news:
+            return to_json_data(errno=Code.PARAMERR, errmsg='文章不存在')
+
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 将json转化为dict
+        dict_data = json.loads(json_data.decode('utf8'))
+
+        form = forms.NewsPubForm(data=dict_data)
+        if form.is_valid():
+            news.title = form.cleaned_data.get('title')
+            news.digest = form.cleaned_data.get('digest')
+            news.content = form.cleaned_data.get('content')
+            news.image_url = form.cleaned_data.get('image_url')
+            news.tag = form.cleaned_data.get('tag')
+            news.save()
+            return to_json_data(errmsg='文章更新成功')
+
+        else:
+            # 定义一个错误信息列表
+            err_msg_list = []
+            for item in form.errors.get_json_data().values():
+                err_msg_list.append(item[0].get('message'))
+            err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
+
+            return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
+
+    def delete(self, request, new_id):
+        """
+        删除新闻
+        :param request:
+        :param new_id:
+        :return:
+        """
+        news = models.News.objects.only('id').filter(is_delete=False, id=new_id).first()
+        if news:
+            news.is_delete = True
+            news.save(update_fields=['is_delete', 'update_time'])
+            return to_json_data(errmsg='文章删除成功')
+        else:
+            return to_json_data(errmsg='文章删除失败')
+
+
 class NewsPubView(View):
     """
     文章添加和文章修改差不多，所以写成一个页面
@@ -401,8 +480,35 @@ class NewsPubView(View):
         tags = models.Tag.objects.only('id', 'name').filter(is_delete=False)
         return render(request, 'admin/news/news_pub.html', locals())
 
+    def post(self, request):
+        """
+        文章上传功能
+        :param request:
+        :return:
+        """
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 2.将json转化为dict
+        dict_data = json.loads(json_data.decode('utf8'))
 
-# 文章上传，编辑，删除
+        form = forms.NewsPubForm(data=dict_data)
+        if form.is_valid():
+            news_instance = form.save(commit=False)
+            news_instance.author_id = request.user.id
+            news_instance.save()
+            return to_json_data()
+
+        else:
+            # 定义一个错误信息列表
+            err_msg_list = []
+            for item in form.errors.get_json_data().values():
+                err_msg_list.append(item[0].get('message'))
+            err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
+
+            return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
+
+
 # 图片上传到fdfs
 class NewsUploadImageView(View):
     """
@@ -449,49 +555,6 @@ class NewsUploadImageView(View):
                 # 拼接成绝对路径，返回给前端
                 image_url = settings.FASTDFS_SERVER_DOMAIN + image_rel_url
                 return to_json_data(data={'image_url': image_url}, errmsg='图片上传成功')
-
-
-class NewsEditView(View):
-    """
-    新闻编辑，删除
-    /admin/news/<int:new_id>/
-    """
-    def get(self, request, new_id):
-        """
-        返回新闻修改页面
-        :param request:
-        :param new_id:
-        :return:
-        """
-
-        news = models.News.objects.only('id', 'title').filter(is_delete=False, id=new_id)
-        if news:
-            tags = models.Tag.objects.only('id', 'name').filter(is_delete=False)
-            context = {
-                'news': news.first(),
-                'tags': tags
-            }
-            return render(request, 'admin/news/news_pub.html', context=context)
-
-        else:
-            return Http404
-
-    def put(self, request, new_id):
-        json_data = request.body
-        if not json_data:
-            return to_json_data()
-        json_dict = json.loads(json_data.decode('utf-8'))
-
-
-
-    def delete(self, request, new_id):
-        news = models.News.objects.only('id').filter(is_delete=False, id=new_id)
-        if news:
-            news.is_delete = True
-            news.save(update_fields=['is_delete', 'update_time'])
-            return to_json_data()
-        else:
-            return to_json_data()
 
 
 # 获取七牛云token
@@ -545,6 +608,17 @@ class MarkDownUploadImage(View):
                 image_name = upload_res.get('Remote file_id')
                 image_url = settings.FASTDFS_SERVER_DOMAIN + image_name
                 return JsonResponse({'success': 1, 'message': '图片上传成功', 'url': image_url})
+
+
+# 录播图管理，删除，修改，添加
+class BannerManageView(View):
+    """
+    /admin/banners/
+    """
+    def get(self, request):
+        priority_dict = OrderedDict(models.Banner.PRI_CHOICES)
+        banners = models.Banner.objects.only('image_url', 'priority').filter(is_delete=False)
+        return render(request, 'admin/news/news_banner.html', locals())
 
 
 
