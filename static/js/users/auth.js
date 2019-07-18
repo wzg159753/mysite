@@ -249,10 +249,10 @@ $(function () {
     })
       .done(function (res) {
         if (res.data.count !== 0) {
-          message.showError(res.data.username + '已注册，请重新输入！')
+          message.showError(res.data.username + '已注册，请重新输入！');
           sReturnValue = ""
         } else {
-          message.showInfo(res.data.username + '能正常使用！')
+          message.showInfo(res.data.username + '能正常使用！');
           sReturnValue = "success"
         }
       })
@@ -284,7 +284,7 @@ $(function () {
     })
       .done(function (res) {
         if (res.data.count !== 0) {
-          message.showError(res.data.mobile + '已注册，请重新输入！')
+          message.showError(res.data.mobile + '已注册，请重新输入！');
           sReturnValue = ""
         } else {
           message.showSuccess(res.data.mobile + '能正常使用！');

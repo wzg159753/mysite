@@ -22,6 +22,7 @@ urlpatterns = [
     path('news/', views.NewsManageView.as_view(), name='news_manage'),
 
     # 文章添加
+    path('news/<int:new_id>/', views.NewsEditView.as_view(), name='news_edit'),
     path('news/pub/', views.NewsPubView.as_view(), name='news_pub'),
     path('news/images/', views.NewsUploadImageView.as_view(), name='upload_image'),
 

@@ -1,13 +1,14 @@
 import json
 import logging
 from datetime import datetime
+from collections import OrderedDict
 
 import qiniu
 from django.views import View
 from django.db.models import Count
 from django.shortcuts import render
-from django.http import JsonResponse
 from django.utils.http import urlencode
+from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator, EmptyPage
 
 from . import contants
@@ -402,6 +403,7 @@ class NewsPubView(View):
 
 
 # 文章上传，编辑，删除
+# 图片上传到fdfs
 class NewsUploadImageView(View):
     """
     ajax发送post
@@ -447,6 +449,49 @@ class NewsUploadImageView(View):
                 # 拼接成绝对路径，返回给前端
                 image_url = settings.FASTDFS_SERVER_DOMAIN + image_rel_url
                 return to_json_data(data={'image_url': image_url}, errmsg='图片上传成功')
+
+
+class NewsEditView(View):
+    """
+    新闻编辑，删除
+    /admin/news/<int:new_id>/
+    """
+    def get(self, request, new_id):
+        """
+        返回新闻修改页面
+        :param request:
+        :param new_id:
+        :return:
+        """
+
+        news = models.News.objects.only('id', 'title').filter(is_delete=False, id=new_id)
+        if news:
+            tags = models.Tag.objects.only('id', 'name').filter(is_delete=False)
+            context = {
+                'news': news.first(),
+                'tags': tags
+            }
+            return render(request, 'admin/news/news_pub.html', context=context)
+
+        else:
+            return Http404
+
+    def put(self, request, new_id):
+        json_data = request.body
+        if not json_data:
+            return to_json_data()
+        json_dict = json.loads(json_data.decode('utf-8'))
+
+
+
+    def delete(self, request, new_id):
+        news = models.News.objects.only('id').filter(is_delete=False, id=new_id)
+        if news:
+            news.is_delete = True
+            news.save(update_fields=['is_delete', 'update_time'])
+            return to_json_data()
+        else:
+            return to_json_data()
 
 
 # 获取七牛云token

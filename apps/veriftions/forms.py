@@ -43,7 +43,7 @@ class SmsCodeForm(forms.Form):
         text = clean_data.get('text')
 
         # 判断手机号存不存在
-        if Users.objects.filter(mobile=mobile):
+        if Users.objects.filter(mobile=mobile).exists():
             raise forms.ValidationError('手机号码已经存在')
 
         # 连接到指定redis数据库

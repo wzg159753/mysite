@@ -5,6 +5,7 @@ from django.views import View
 from django.http import Http404
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from haystack.views import SearchView as _SearchView
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -19,6 +20,7 @@ from utils.res_code import Code, error_map
 logger = logging.getLogger('django')
 
 
+@method_decorator(cache_page(timeout=200, cache='page_cache'), name='dispatch')
 class IndexView(View):
     """
     新闻首页面动态显示标签和hot_news视图
