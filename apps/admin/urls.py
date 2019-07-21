@@ -33,6 +33,12 @@ urlpatterns = [
     path('markdown/images', views.MarkDownUploadImage.as_view(), name='markdown_image_upload'),
 
     # 轮播图
-    path('banners/', views.BannerManageView.as_view(), name='banners_manage')
+    path('banners/', views.BannerManageView.as_view(), name='banners_manage'),
+    path('banners/<int:banner_id>/', views.BannerEditView.as_view(), name='banners_edit'),
+    path('banners/add/', views.BannerAddView.as_view(), name='banners_add'),
+
+    # 文档管理
+    path('docs/', views.DocsManageView.as_view(), name='docs_manage'),
+    path('docs/<int:doc_id>/', views.DocsEditView.as_view(), name='docs_edit'),
 
 ]

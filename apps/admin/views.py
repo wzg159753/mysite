@@ -14,6 +14,7 @@ from django.core.paginator import Paginator, EmptyPage
 from . import forms
 from . import contants
 from news1 import models
+from doc.models import Doc
 from mysite import settings
 from utils.secrets import qiniu_secret
 from utils.json_func import to_json_data
@@ -407,7 +408,9 @@ class NewsEditView(View):
         """
 
         news = models.News.objects.only('id', 'title').filter(is_delete=False, id=new_id)
+        # 拿到文章，展示数据
         if news:
+            # 返回tags，用于选择
             tags = models.Tag.objects.only('id', 'name').filter(is_delete=False)
             context = {
                 'news': news.first(),
@@ -493,6 +496,7 @@ class NewsPubView(View):
         dict_data = json.loads(json_data.decode('utf8'))
 
         form = forms.NewsPubForm(data=dict_data)
+        # 验证文章字段  django内置form认证
         if form.is_valid():
             news_instance = form.save(commit=False)
             news_instance.author_id = request.user.id
@@ -616,12 +620,186 @@ class BannerManageView(View):
     /admin/banners/
     """
     def get(self, request):
+        """
+        轮播图管理，展示
+        :param request:
+        :return:
+        """
+        # 拿到排序的优先级dict
         priority_dict = OrderedDict(models.Banner.PRI_CHOICES)
+        # 拿到对应的轮播图
         banners = models.Banner.objects.only('image_url', 'priority').filter(is_delete=False)
         return render(request, 'admin/news/news_banner.html', locals())
 
 
+class BannerEditView(View):
+    """
+    /admin/banners/<banner_id>/
+    轮播图删除，编辑
+    """
+    def delete(self, request, banner_id):
+        """
+        删除
+        :param request:
+        :param banner_id:
+        :return:
+        """
+        banner = models.Banner.objects.only('id').filter(id=banner_id, is_delete=False).first()
+        if banner:
+            banner.is_delete = True
+            banner.save(update_fields=['is_delete', 'update_time'])
+            return to_json_data(errmsg='轮播图删除成功')
+        else:
+            return to_json_data('轮播图不存在')
+
+    def put(self, request, banner_id):
+        """
+        编辑
+        :param request:
+        :param banner_id:
+        :return:
+        """
+        banner = models.Banner.objects.only('id').filter(id=banner_id, is_delete=False).first()
+        if not banner:
+            return to_json_data(errno=Code.DATAEXIST, errmsg=error_map[Code.DATAEXIST])
+
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 2.将json转化为dict
+        dict_data = json.loads(json_data.decode('utf8'))
+
+        try:
+            priority = int(dict_data.get('priority'))
+            priority_list = [i for i, _ in models.Banner.PRI_CHOICES]
+            if priority not in priority_list:
+                return to_json_data(errno=Code.PARAMERR, errmsg='轮播图优先级设置错误')
+        except Exception as e:
+            logger.info('轮播图优先级异常\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='轮播图优先级设置错误')
+
+        image_url = dict_data.get('image_url')
+        if not image_url:
+            return to_json_data(errno=Code.PARAMERR, errmsg='图片为空')
+        if banner.image_url == priority and banner.image_url == image_url:
+            return to_json_data(errno=Code.PARAMERR, errmsg='轮播图优先级未更改')
+
+        banner.image_url = image_url
+        banner.priority = priority
+        banner.save(update_fields=['image_url', 'priority', 'update_time'])
+        return to_json_data(errmsg='更新成功')
 
 
+class BannerAddView(View):
+    """
+    /admin/banners/add/
+    """
+    def get(self, request):
+        """
+        展示轮播图添加
+        :param request:
+        :return:
+        """
+        tags = models.Tag.objects.values('id', 'name').annotate(num_news=Count('news')).filter(is_delete=False).order_by('-num_news', 'update_time')
+        priority_dict = OrderedDict(models.Banner.PRI_CHOICES)
 
+        return render(request, 'admin/news/news_banner_add.html', locals())
+
+    def post(self, request):
+        """
+        添加轮播图
+        :param request:
+        :return:
+        """
+        json_data = request.body
+        if not json_data:
+            return to_json_data()
+        dict_data = json.loads(json_data.decode('utf-8'))
+
+        try:
+            news_id = int(dict_data.get('news_id'))
+            if not models.News.objects.only('id').filter(id=news_id).exists():
+                to_json_data(errno=Code.PARAMERR, errmsg='文章不存在')
+
+        except Exception as e:
+            logger.info('前端传过来的文章id参数异常：\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='参数错误')
+
+        try:
+            priority = int(dict_data.get('priority'))
+            priority_list = [i for i, _ in models.Banner.PRI_CHOICES]
+            if priority not in priority_list:
+                return to_json_data(errno=Code.PARAMERR, errmsg='轮播图的优先级设置错误')
+
+        except Exception as e:
+            logger.info('轮播图优先级异常：\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='轮播图的优先级设置错误')
+
+        image_url = dict_data.get('image_url')
+        if not image_url:
+            return to_json_data(errno=Code.PARAMERR, errmsg='轮播图url为空')
+
+        banner, is_created = models.Banner.objects.get_or_create(news_id=news_id)
+        if is_created:
+            banner.image_url = image_url
+            banner.priority = priority
+            banner.save(update_fields=['priority', 'image_url', 'update_time'])
+            return to_json_data(errmsg="轮播图创建成功")
+        else:
+            return to_json_data(errno=Code.DATAEXIST, errmsg='数据已存在')
+
+
+# 文档管理，删除，修改，添加
+class DocsManageView(View):
+
+    def get(self, request):
+        docs = Doc.objects.only('id', 'title', 'create_time').filter(is_delete=False)
+        return render(request, 'admin/doc/docs_manage.html', locals())
+
+
+class DocsEditView(View):
+
+    def get(self, request, doc_id):
+        doc = Doc.objects.only('id').filter(id=doc_id).first()
+        if doc:
+            return render(request, 'admin/doc/docs_pub.html', locals())
+        else:
+            raise Http404('需要更新得文档不存在')
+
+    def delete(self, request, doc_id):
+        doc = Doc.objects.only('id').filter(id=doc_id).first()
+        if doc:
+            doc.is_delete = True
+            doc.save(update_fields=['is_delete'])
+            return to_json_data(errmsg='文档删除成功')
+        else:
+            to_json_data(errno=Code.PARAMERR, errmsg='需要删除的文档不存在')
+
+    def put(self, request, doc_id):
+        doc = Doc.objects.only('id').filter(is_delete=False, id=doc_id)
+        if not doc:
+            return to_json_data(errno=Code.NODATA, errmsg='需要更新的文档不存在')
+
+        json_dict = request.body
+        if not json_dict:
+            return to_json_data()
+        dict_date = json.loads(json_dict.decode('utf-8'))
+
+        form = forms.DocsPubForm(data=dict_date)
+        if form.is_valid():
+            doc.title = form.cleaned_data.get('title')
+            doc.desc = form.cleaned_data.get('desc')
+            doc.file_url = form.cleaned_data.get('file_url')
+            doc.image_url = form.cleaned_data.get('image_url')
+            doc.save()
+            return to_json_data(errmsg='文档更新成功')
+
+        else:
+            # 定义一个错误信息列表
+            err_msg_list = []
+            for item in form.errors.get_json_data().values():
+                err_msg_list.append(item[0].get('message'))
+            err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
+
+            return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
 
