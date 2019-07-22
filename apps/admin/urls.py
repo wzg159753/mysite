@@ -32,13 +32,20 @@ urlpatterns = [
     # 富文本编辑器图片上传
     path('markdown/images', views.MarkDownUploadImage.as_view(), name='markdown_image_upload'),
 
-    # 轮播图
+    # 轮播图 管理 删除 修改 添加
     path('banners/', views.BannerManageView.as_view(), name='banners_manage'),
     path('banners/<int:banner_id>/', views.BannerEditView.as_view(), name='banners_edit'),
     path('banners/add/', views.BannerAddView.as_view(), name='banners_add'),
 
-    # 文档管理
+    # 文档管理 删除 修改 添加
     path('docs/', views.DocsManageView.as_view(), name='docs_manage'),
     path('docs/<int:doc_id>/', views.DocsEditView.as_view(), name='docs_edit'),
+    path('docs/pub/', views.DocsPubView.as_view(), name='docs_pub'),
+    path('docs/files/', views.DocsUploadFile.as_view(), name='upload_text'),
+
+    # 在线课堂管理，删除 修改 添加
+    path('courses/', views.CourseManageView.as_view(), name='courses_manage'),
+    path('courses/<int:course_id>/', views.CourseEditView.as_view(), name='courses_edit'),
+    path('courses/pub/', views.CoursePubView.as_view(), name='courses_pub'),
 
 ]

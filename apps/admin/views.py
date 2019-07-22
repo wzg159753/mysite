@@ -21,6 +21,8 @@ from utils.json_func import to_json_data
 from utils.res_code import Code, error_map
 from utils.fastdfs.fast import FDFS_Client
 from utils.paginator_script import get_paginator_data
+from course.models import Course, Teacher, CourseCategory
+
 
 logger = logging.getLogger('django')
 
@@ -776,7 +778,7 @@ class DocsEditView(View):
             to_json_data(errno=Code.PARAMERR, errmsg='需要删除的文档不存在')
 
     def put(self, request, doc_id):
-        doc = Doc.objects.only('id').filter(is_delete=False, id=doc_id)
+        doc = Doc.objects.only('id').filter(is_delete=False, id=doc_id).first()
         if not doc:
             return to_json_data(errno=Code.NODATA, errmsg='需要更新的文档不存在')
 
@@ -803,3 +805,196 @@ class DocsEditView(View):
 
             return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
 
+
+class DocsPubView(View):
+    """
+    文档上传
+    /admin/docs/pub/
+    """
+    def get(self, request):
+        return render(request, 'admin/doc/docs_pub.html')
+
+    def post(self, request):
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 将json转化为dict
+        dict_data = json.loads(json_data.decode('utf8'))
+
+        # django内置表单验证
+        form = forms.DocsPubForm(data=dict_data)
+        if form.is_valid():
+            # 未存储到数据库 先提交成一个对象
+            docs_instance = form.save(commit=False)
+            # 给数据对象的author字段赋值
+            docs_instance.author_id = request.user.id
+            # 保存
+            docs_instance.save()
+            return to_json_data(errmsg='文档创建成功')
+        else:
+            # 定义一个错误信息列表
+            err_msg_list = []
+            for item in form.errors.get_json_data().values():
+                err_msg_list.append(item[0].get('message'))
+            err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
+
+            return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
+
+
+class DocsUploadFile(View):
+    """
+    文档上传到fdfs
+    /admin/docs/files/
+    """
+
+    def post(self, request):
+        text_file = request.FILES.get('text_file')
+        if not text_file:
+            logger.info('从前端获取文件失败')
+            return to_json_data(errno=Code.NODATA, errmsg='从前端获取文件失败')
+
+        if text_file.content_type not in ('application/octet-stream', 'application/pdf',
+                                          'application/zip', 'text/plain', 'application/x-rar'):
+            return to_json_data(errno=Code.DATAERR, errmsg='不能上传非文本文件')
+
+        try:
+            text_ext_name = text_file.name.split('.')[-1]
+        except Exception as e:
+            logger.info('文件拓展名异常：{}'.format(e))
+            text_ext_name = 'pdf'
+
+        try:
+            upload_res = FDFS_Client.upload_by_buffer(text_file.read(), file_ext_name=text_ext_name)
+        except Exception as e:
+            logger.error('文件上传出现异常：{}'.format(e))
+            return to_json_data(errno=Code.UNKOWNERR, errmsg='文件上传异常')
+        else:
+            if upload_res.get('Status') != 'Upload successed.':
+                logger.info('文件上传到FastDFS服务器失败')
+                return to_json_data(Code.UNKOWNERR, errmsg='文件上传到服务器失败')
+            else:
+                text_name = upload_res.get('Remote file_id')
+                text_url = settings.FASTDFS_SERVER_DOMAIN + text_name
+                return to_json_data(data={'text_file': text_url}, errmsg='文件上传成功')
+
+
+# 课程管理，删除，修改，添加
+class CourseManageView(View):
+    """
+    课程管理
+    /admin/courses/
+    """
+    def get(self, request):
+        courses = Course.objects.select_related('category', 'teacher').only('id', 'category__name', 'teacher__name').filter(is_delete=False)
+        return render(request, 'admin/course/courses_manage.html', locals())
+
+
+class CourseEditView(View):
+    """
+    课程编辑，删除
+    """
+    def get(self, request, course_id):
+        """
+        展示修改和添加
+        :param request:
+        :param course_id:
+        :return:
+        """
+        course = Course.objects.only('id').filter(is_delete=False, id=course_id).first()
+        if course:
+            categories = CourseCategory.objects.only('id', 'name').filter(is_delete=False)
+            teachers = Teacher.objects.only('id', 'name').filter(is_delete=False)
+            return render(request, 'admin/course/course_pub.html', locals())
+        else:
+            return Http404('课程不存在')
+
+    def delete(self, request, course_id):
+        """
+        删除
+        :param request:
+        :param course_id:
+        :return:
+        """
+        course = Course.objects.only('id').filter(is_delete=False, id=course_id).first()
+        if course:
+            course.is_delete = True
+            course.save(update_fields=['is_delete', 'update_time'])
+            return to_json_data(errmsg='课程删除成功')
+        else:
+            return to_json_data(errno=Code.PARAMERR, errmsg='更新的课程不存在')
+
+    def put(self, request, course_id):
+        """
+        更新
+        :param request:
+        :param course_id:
+        :return:
+        """
+        # 判断有没有这个课程
+        course = Course.objects.only('id').filter(is_delete=False, id=course_id).first()
+        if not course:
+            return to_json_data(errno=Code.NODATA, errmsg='需要更新的课程不存在')
+
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        dict_date = json.loads(json_data.decode('utf-8'))
+
+        # 内置表单认证
+        form = forms.CoursesPubForm(data=dict_date)
+        if form.is_valid():
+            # 取出认证完成的数据{'cover_url': xxxxx, 'image_url': xxxxx}
+            # 设置类属性的方式  将遍历出来的 key和value设置到course中
+            for attr, value in form.cleaned_data.items():
+                setattr(course, attr, value)
+            # 保存
+            course.save()
+            return to_json_data(errmsg='课程更新成功')
+        else:
+            # 定义一个错误信息列表
+            err_msg_list = []
+            for item in form.errors.get_json_data().values():
+                err_msg_list.append(item[0].get('message'))
+            err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
+            return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
+
+
+class CoursePubView(View):
+    """
+    课程发布
+    /admin/courses/pub/
+    """
+    def get(self, request):
+        """
+        展示发布页
+        :param request:
+        :return:
+        """
+        teachers = Teacher.objects.only('id', 'name').filter(is_delete=False)
+        categories = CourseCategory.objects.only('id', 'name').filter(is_delete=False)
+        return render(request, 'admin/course/course_pub.html', locals())
+
+    def post(self, request):
+        """
+        课程发布
+        :param request:
+        :return:
+        """
+        json_data = request.body
+        if not json_data:
+            return to_json_data()
+        dict_data = json.loads(json_data.decode('utf-8'))
+
+        form = forms.CoursesPubForm(data=dict_data)
+        if form.is_valid():
+            course_instance = form.save(commit=False)
+            course_instance.save()
+            return to_json_data(errmsg='课程发布成功')
+
+        else:
+            # 定义一个错误信息列表
+            err_msg_list = []
+            for item in form.errors.get_json_data().values():
+                err_msg_list.append(item[0].get('message'))
+            err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
+            return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
