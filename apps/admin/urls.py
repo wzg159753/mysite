@@ -48,4 +48,8 @@ urlpatterns = [
     path('courses/<int:course_id>/', views.CourseEditView.as_view(), name='courses_edit'),
     path('courses/pub/', views.CoursePubView.as_view(), name='courses_pub'),
 
+    # 组管理，删除，添加, 编辑
+    path('groups/', views.GroupManageView.as_view(), name='groups_manage'),
+    path('groups/<int:group_id>/', views.GroupEditView.as_view(), name='groups_edit'),
+
 ]

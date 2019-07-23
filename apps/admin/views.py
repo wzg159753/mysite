@@ -10,6 +10,7 @@ from django.shortcuts import render
 from django.utils.http import urlencode
 from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator, EmptyPage
+from django.contrib.auth.models import Group, Permission
 
 from . import forms
 from . import contants
@@ -998,3 +999,101 @@ class CoursePubView(View):
                 err_msg_list.append(item[0].get('message'))
             err_msg_str = '/'.join(err_msg_list)  # 拼接错误信息为一个字符串
             return to_json_data(errno=Code.PARAMERR, errmsg=err_msg_str)
+
+
+# 组管理，groups
+class GroupManageView(View):
+    """
+    组管理
+    /admin/groups/
+    """
+    def get(self, request):
+        """
+        渲染组信息
+        :param request:
+        :return:
+        """
+        groups = Group.objects.values('id', 'name').annotate(num_users=Count('user')).order_by('-num_users', 'id')
+        return render(request, 'admin/user/groups_manage.html', locals())
+
+
+class GroupEditView(View):
+    """
+    组编辑删除
+    /admin/groups/<int:group_id>/
+    """
+    def get(self, request, group_id):
+        """
+        渲染编辑页
+        :param request:
+        :param group_id:
+        :return:
+        """
+        group = Group.objects.only('id').filter(id=group_id).first()
+        if group:
+            permissions = Permission.objects.only('id').all()
+            return render(request, 'admin/user/groups_add.html', locals())
+        else:
+            raise Http404('组不存在')
+
+    def delete(self, request, group_id):
+        """
+        删除
+        :param request:
+        :param group_id:
+        :return:
+        """
+        group = Group.objects.filter(id=group_id).first()
+        if group:
+            group.permissions.clear()   # 清空权限
+            group.delete()
+            return to_json_data(errmsg="用户组删除成功")
+        else:
+            return to_json_data(errno=Code.PARAMERR, errmsg="需要删除的用户组不存在")
+
+    def put(self, request, group_id):
+        group = Group.objects.only('id').filter(id=group_id).first()
+        if not group:
+            return to_json_data(errno=Code.NODATA, errmsg='需要更新的用户组不存在')
+
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        # 将json转化为dict
+        dict_data = json.loads(json_data.decode('utf8'))
+
+        # 取出组名，进行判断
+        group_name = dict_data.get('name', '').strip()
+        if not group_name:
+            return to_json_data(errno=Code.PARAMERR, errmsg='组名为空')
+
+        if group_name != group.name and Group.objects.filter(name=group_name).exists():
+            return to_json_data(errno=Code.DATAEXIST, errmsg='组名已存在')
+
+        # 取出权限
+        group_permissions = dict_data.get('group_permissions')
+        if not group_permissions:
+            return to_json_data(errno=Code.PARAMERR, errmsg='权限参数为空')
+
+        try:
+            permissions_set = set(int(i) for i in group_permissions)
+        except Exception as e:
+            logger.info('传的权限参数异常：\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='权限参数异常')
+
+        all_permissions_set = set(i.id for i in Permission.objects.only('id'))
+        if not permissions_set.issubset(all_permissions_set):
+            return to_json_data(errno=Code.PARAMERR, errmsg='有不存在的权限参数')
+
+        existed_permissions_set = set(i.id for i in group.permissions.all())
+        if group_name == group.name and permissions_set == existed_permissions_set:
+            return to_json_data(errno=Code.DATAEXIST, errmsg='用户组信息未修改')
+        # 设置权限
+        for perm_id in permissions_set:
+            p = Permission.objects.get(id=perm_id)
+            group.permissions.add(p)
+
+        group.name = group_name
+        group.save()
+        return to_json_data(errmsg='组更新成功！')
+
