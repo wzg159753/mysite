@@ -1013,6 +1013,7 @@ class GroupManageView(View):
         :param request:
         :return:
         """
+        # 查询到组信息，对组里的用户进行聚合查询
         groups = Group.objects.values('id', 'name').annotate(num_users=Count('user')).order_by('-num_users', 'id')
         return render(request, 'admin/user/groups_manage.html', locals())
 
@@ -1029,8 +1030,10 @@ class GroupEditView(View):
         :param group_id:
         :return:
         """
+        # 查询到对应的组
         group = Group.objects.only('id').filter(id=group_id).first()
         if group:
+            # 查询到所有的组权限
             permissions = Permission.objects.only('id').all()
             return render(request, 'admin/user/groups_add.html', locals())
         else:
@@ -1045,13 +1048,22 @@ class GroupEditView(View):
         """
         group = Group.objects.filter(id=group_id).first()
         if group:
+            # 清空组权限
             group.permissions.clear()   # 清空权限
+            # 删除组
             group.delete()
             return to_json_data(errmsg="用户组删除成功")
         else:
             return to_json_data(errno=Code.PARAMERR, errmsg="需要删除的用户组不存在")
 
     def put(self, request, group_id):
+        """
+        修改组权限名称
+        :param request:
+        :param group_id:
+        :return:
+        """
+        # 查询出对应的组
         group = Group.objects.only('id').filter(id=group_id).first()
         if not group:
             return to_json_data(errno=Code.NODATA, errmsg='需要更新的用户组不存在')
@@ -1062,15 +1074,73 @@ class GroupEditView(View):
         # 将json转化为dict
         dict_data = json.loads(json_data.decode('utf8'))
 
-        # 取出组名，进行判断
+        # 取出组名，进行判断， 如果没有，抛出异常
         group_name = dict_data.get('name', '').strip()
         if not group_name:
             return to_json_data(errno=Code.PARAMERR, errmsg='组名为空')
 
+        # 如果用户输入的组名不等于原来的组名  并且  查询组名已经存在
         if group_name != group.name and Group.objects.filter(name=group_name).exists():
             return to_json_data(errno=Code.DATAEXIST, errmsg='组名已存在')
 
-        # 取出权限
+        # 取出用户输入的权限
+        group_permissions = dict_data.get('group_permissions')
+        if not group_permissions:
+            return to_json_data(errno=Code.PARAMERR, errmsg='权限参数为空')
+
+        try:
+            # 取出用户的权限id  (1, 3, 4, 6) 用set去重
+            permissions_set = set(int(i) for i in group_permissions)
+        except Exception as e:
+            logger.info('传的权限参数异常：\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='权限参数异常')
+
+        # 取出所有的权限  去重
+        all_permissions_set = set(i.id for i in Permission.objects.only('id'))
+        # 判断  如果用户输入的权限是所有权限的子集（所有权限是否包含用户输入权限）
+        if not permissions_set.issubset(all_permissions_set):
+            return to_json_data(errno=Code.PARAMERR, errmsg='有不存在的权限参数')
+
+        # 查询出原来组的权限
+        existed_permissions_set = set(i.id for i in group.permissions.all())
+        # 如果输入的用户名相同  并且  权限相同
+        if group_name == group.name and permissions_set == existed_permissions_set:
+            return to_json_data(errno=Code.DATAEXIST, errmsg='用户组信息未修改')
+        # 设置权限
+        for perm_id in permissions_set:
+            # 遍历用户输入的权限id 查询出权限，然后添加到组的权限中
+            p = Permission.objects.get(id=perm_id)
+            group.permissions.add(p)
+
+        # 保存
+        group.name = group_name
+        group.save()
+        return to_json_data(errmsg='组更新成功！')
+
+
+class GroupAddView(View):
+    """
+    添加权限
+    /admin/groups/add/
+    """
+    def get(self, request):
+        permissions = Permission.objects.only('id').all()
+        return render(request, 'admin/user/groups_add.html', locals())
+
+    def post(self, request):
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        dict_data = json.loads(json_data.decode('utf-8'))
+
+        group_name = dict_data.get('name', '').strip()
+        if not group_name:
+            return to_json_data(errno=Code.PARAMERR, errmsg='组名为空')
+
+        group, is_created = Group.objects.get_or_create(name=group_name)
+        if not is_created:
+            return to_json_data(errno=Code.DATAEXIST, errmsg='组名已存在')
+
         group_permissions = dict_data.get('group_permissions')
         if not group_permissions:
             return to_json_data(errno=Code.PARAMERR, errmsg='权限参数为空')
@@ -1085,15 +1155,11 @@ class GroupEditView(View):
         if not permissions_set.issubset(all_permissions_set):
             return to_json_data(errno=Code.PARAMERR, errmsg='有不存在的权限参数')
 
-        existed_permissions_set = set(i.id for i in group.permissions.all())
-        if group_name == group.name and permissions_set == existed_permissions_set:
-            return to_json_data(errno=Code.DATAEXIST, errmsg='用户组信息未修改')
         # 设置权限
         for perm_id in permissions_set:
             p = Permission.objects.get(id=perm_id)
             group.permissions.add(p)
 
-        group.name = group_name
         group.save()
-        return to_json_data(errmsg='组更新成功！')
+        return to_json_data(errmsg='组创建成功！')
 
