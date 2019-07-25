@@ -1,9 +1,14 @@
+import json
+import math
+
 import os
 import logging
+from lxml import etree
 
 import requests
+from datetime import datetime
 from django.shortcuts import render
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.utils.encoding import escape_uri_path
 from django.views import View
 
@@ -95,3 +100,52 @@ class DocDownload(View):
 
         else:
             raise Http404("文档不存在！")
+
+
+class SpiderDownloadView(View):
+    """
+    天眼查爬虫
+    """
+    def get(self, request):
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36',
+            'Cookie': 'ssuid=8382144908; TYCID=74ec6020a2d611e98c68bf4e5261bedb; undefined=74ec6020a2d611e98c68bf4e5261bedb; _ga=GA1.2.1702490168.1562737758; RTYCID=d53d7889ecea46899d6ca5a58cfedfa4; CT_TYCID=bcc24dbd9f2c4bc5a827f83fa25ed13f; aliyungf_tc=AQAAALDv+xbHLAEAniP/kLHfRMu1MBm/; bannerFlag=undefined; csrfToken=qOoWhuFMSPTOR4w5PsQKaKO3; Hm_lvt_e92c8d65d92d534b0fc290df538b4758=1562737758,1563343625,1563935551,1564071780; _gid=GA1.2.2009323628.1564071781; _gat_gtag_UA_123487620_1=1; tyc-user-info=%257B%2522claimEditPoint%2522%253A%25220%2522%252C%2522myAnswerCount%2522%253A%25220%2522%252C%2522myQuestionCount%2522%253A%25220%2522%252C%2522signUp%2522%253A%25220%2522%252C%2522explainPoint%2522%253A%25220%2522%252C%2522privateMessagePointWeb%2522%253A%25220%2522%252C%2522nickname%2522%253A%2522%25E5%2585%258B%25E9%2587%258C%25E6%2596%25AF%25E8%2592%2582%25E5%25A8%259C%25C2%25B7%25E8%2589%25BE%25E4%25BC%25AF%25E7%259B%2596%25E7%2589%25B9%2522%252C%2522integrity%2522%253A%25220%2525%2522%252C%2522privateMessagePoint%2522%253A%25220%2522%252C%2522state%2522%253A%25220%2522%252C%2522announcementPoint%2522%253A%25220%2522%252C%2522isClaim%2522%253A%25220%2522%252C%2522vipManager%2522%253A%25220%2522%252C%2522discussCommendCount%2522%253A%25221%2522%252C%2522monitorUnreadCount%2522%253A%252210%2522%252C%2522onum%2522%253A%25220%2522%252C%2522claimPoint%2522%253A%25220%2522%252C%2522token%2522%253A%2522eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxMzg1MzI3NTA5MCIsImlhdCI6MTU2NDA3MTc5NSwiZXhwIjoxNTk1NjA3Nzk1fQ.zG46NSQkyEntf3La92iRPA7p6GlwRi6SVuJiaQOE03qzq3ofBb5u8AmoR2099-_C2ACM1uHAa5mLFtQWxzFcxQ%2522%252C%2522pleaseAnswerCount%2522%253A%25220%2522%252C%2522redPoint%2522%253A%25220%2522%252C%2522bizCardUnread%2522%253A%25220%2522%252C%2522vnum%2522%253A%25220%2522%252C%2522mobile%2522%253A%252213853275090%2522%257D; auth_token=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxMzg1MzI3NTA5MCIsImlhdCI6MTU2NDA3MTc5NSwiZXhwIjoxNTk1NjA3Nzk1fQ.zG46NSQkyEntf3La92iRPA7p6GlwRi6SVuJiaQOE03qzq3ofBb5u8AmoR2099-_C2ACM1uHAa5mLFtQWxzFcxQ; Hm_lpvt_e92c8d65d92d534b0fc290df538b4758=1564071809'
+        }
+        resp = requests.get('https://www.tianyancha.com/company/14270846', headers=headers)
+        html = etree.HTML(resp.text)
+        pages = html.xpath(
+            '//div[@id="_container_judicialSale"]/div[@class="company_pager pagination-warp"]/ul/@page-total')
+        if pages:
+            result = {}
+            pns = math.ceil(int(pages[0]) / 30)
+            lis = []
+            for pn in range(1, pns + 1):
+                params = {
+                    'ps': '30',
+                    'pn': str(pn),
+                    'id': '14270846',
+                    '_': str(int(datetime.now().timestamp() * 1000))
+                }
+                resp = requests.get('https://www.tianyancha.com/pagination/judicialSale.xhtml', headers=headers,
+                                    params=params)
+                if resp.status_code == 200:
+                    code = etree.HTML(resp.text)
+                    trs = code.xpath('//table/tbody/tr')
+                    # print(tbody)
+                    for tr in trs:
+                        lis.append({
+                            'num': tr.xpath('./td[1]/text()')[0],
+                            'time': tr.xpath('./td[2]/text()')[0],
+                            'info': tr.xpath('./td[3]/text()')[0],
+                            'biaodi': '-'.join(tr.xpath('./td[4]//text()')),
+                            'fayuan': tr.xpath('./td[5]/text()')[0]
+                        })
+                    # print(tbody)
+
+                else:
+                    return HttpResponse('验证码<br>')
+            result['result'] = lis
+            return HttpResponse(json.dumps(result))
+        else:
+
+            return HttpResponse('验证码')
