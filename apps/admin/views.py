@@ -5,12 +5,14 @@ from collections import OrderedDict
 
 import qiniu
 from django.views import View
+from users.models import Users
 from django.db.models import Count
 from django.shortcuts import render
 from django.utils.http import urlencode
 from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator, EmptyPage
 from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from . import forms
 from . import contants
@@ -761,7 +763,10 @@ class DocsManageView(View):
 
 
 class DocsEditView(View):
-
+    """
+    文档编辑删除
+    /admin/docs/<int:doc_id>/
+    """
     def get(self, request, doc_id):
         doc = Doc.objects.only('id').filter(id=doc_id).first()
         if doc:
@@ -1162,4 +1167,101 @@ class GroupAddView(View):
 
         group.save()
         return to_json_data(errmsg='组创建成功！')
+
+
+# 用户管理
+class UserManageView(View, PermissionRequiredMixin):
+    """
+    用户管理
+    /admin/users/
+    """
+    permission_required = ('users.add_users', 'users.view_users')
+    raise_exception = True
+
+    def handle_no_permission(self):
+        if self.request.method.lower != 'GET':
+            return to_json_data(errno=Code.ROLEERR, errmsg='没有操作权限')
+        else:
+            return super(UserManageView, self).handle_no_permission()
+
+    def get(self, request):
+        users = Users.objects.only('id', 'is_staff', 'is_superuser').filter(is_active=True)
+        return render(request, 'admin/user/users_manage.html', locals())
+
+
+class UserEditView(View):
+    """
+    用户编辑，删除
+    /admin/users/<int:user_id>/
+    """
+    def get(self, request, user_id):
+        user_instance = Users.objects.only('id').filter(id=user_id).first()
+        if user_instance:
+            groups = Group.objects.only('id', 'name').all()
+            return render(request, 'admin/user/users_edit.html', locals())
+        else:
+            raise Http404('需要更新的用户不存在！')
+
+    def delete(self, request, user_id):
+        """
+        删除用户
+        :param request:
+        :param user_id:
+        :return:
+        """
+        user_instance = Users.objects.only('id').filter(id=user_id).first()
+        if user_instance:
+            user_instance.groups.clear()
+            user_instance.user_permissions.clear()
+            user_instance.is_active = False
+            user_instance.save()
+            return to_json_data(errmsg='用户删除成功')
+        else:
+            return to_json_data(errno=Code.PARAMERR, errmsg="需要删除的用户不存在")
+
+    def put(self, request, user_id):
+        user_instance = Users.objects.only('id').filter(id=user_id).first()
+        if not user_instance:
+            return to_json_data(errmsg='用户不存在')
+
+        json_data = request.body
+        if not json_data:
+            return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        dict_data = json.loads(json_data.decode('utf-8'))
+
+        try:
+            groups = dict_data.get('groups')
+
+            is_superuser = int(dict_data.get('is_superuser'))
+            is_staff = int(dict_data.get('is_staff'))
+            is_active = int(dict_data.get('is_active'))
+            params = (is_superuser, is_staff, is_active)
+            if not all([i in (0, 1) for i in params]):
+                return to_json_data(errno=Code.PARAMERR, errmsg=error_map[Code.PARAMERR])
+        except Exception as e:
+            logger.info('从前端获取参数出现异常：\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='参数错误')
+
+        try:
+            groups_set = set(int(i) for i in groups) if groups else set()
+        except Exception as e:
+            logger.info('传的用户组参数异常：\n{}'.format(e))
+            return to_json_data(errno=Code.PARAMERR, errmsg='用户组参数异常')
+
+        all_groups_set = set(int(i.id) for i in Group.objects.only('id'))
+        if not groups_set.issubset(all_groups_set):
+            return to_json_data(errno=Code.PARAMERR, errmsg='有不存在的用户组参数')
+
+        gid = Group.objects.filter(id__in=groups_set)
+        user_instance.groups.clear()
+        user_instance.groups.set(gid)
+
+        user_instance.is_active = bool(is_active)
+        user_instance.is_staff = bool(is_staff)
+        user_instance.is_superuser = bool(is_superuser)
+
+        user_instance.save()
+        return to_json_data(errmsg='用户更新成功')
+
+
 

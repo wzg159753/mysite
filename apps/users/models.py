@@ -42,3 +42,6 @@ class Users(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    def get_groups_name(self):
+        return '|'.join([i.name for i in self.groups.all()])

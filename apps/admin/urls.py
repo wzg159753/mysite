@@ -53,4 +53,9 @@ urlpatterns = [
     path('groups/<int:group_id>/', views.GroupEditView.as_view(), name='groups_edit'),
     path('groups/add/', views.GroupAddView.as_view(), name='groups_add'),
 
+    # 用户管理，编辑
+    path('users/', views.UserManageView.as_view(), name='users_manage'),
+    path('users/<int:user_id>/', views.UserEditView.as_view(), name='users_edit')
+
+
 ]
